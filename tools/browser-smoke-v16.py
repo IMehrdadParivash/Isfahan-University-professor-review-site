@@ -67,13 +67,15 @@ def main() -> int:
         q.clear()
         wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, "#cards .card")) > 1)
 
-        # Faculty filter.
-        faculty = Select(driver.find_element(By.ID, "faculty"))
-        if len(faculty.options) > 1:
-            faculty.select_by_index(1)
-            time.sleep(0.35)
-            require(driver.find_element(By.ID, "resultCount").text.strip(), "faculty filter produced no result-count state")
-            faculty.select_by_index(0)
+        # Faculty / department / course filters.
+        for field_id in ("faculty", "department", "course"):
+            select = Select(driver.find_element(By.ID, field_id))
+            if len(select.options) > 1:
+                select.select_by_index(1)
+                time.sleep(0.35)
+                require(driver.find_element(By.ID, "resultCount").text.strip(), f"{field_id} filter produced no result-count state")
+                select.select_by_index(0)
+                time.sleep(0.15)
 
         # Sort controls.
         sort = Select(driver.find_element(By.ID, "sort"))
@@ -100,7 +102,7 @@ def main() -> int:
         persisted = driver.execute_script("return localStorage.getItem('ui_saved_professors') || '[]'")
         require(saved_name in persisted, "saved professor did not persist in localStorage")
 
-        # Compare two professors and verify compare CTA becomes enabled.
+        # Compare two professors; verify bar and comparison modal.
         compares = driver.find_elements(By.CSS_SELECTOR, "#cards [data-compare]")
         if len(compares) >= 2:
             driver.execute_script("arguments[0].click()", compares[0])
@@ -109,6 +111,11 @@ def main() -> int:
             compare_go = driver.find_element(By.ID, "compareGo")
             wait.until(lambda d: compare_go.is_enabled())
             require("show" in driver.find_element(By.ID, "compareBar").get_attribute("class").split(), "compare bar did not become visible")
+            driver.execute_script("arguments[0].click()", compare_go)
+            modal = driver.find_element(By.ID, "compareModal")
+            wait.until(lambda d: any(x in modal.get_attribute("class").split() for x in ("show", "open")))
+            require(driver.find_element(By.ID, "compareBody").text.strip(), "comparison modal opened without content")
+            driver.execute_script("arguments[0].click()", driver.find_element(By.ID, "compareClose"))
 
         # Theme toggle.
         before = driver.find_element(By.TAG_NAME, "html").get_attribute("data-theme")
@@ -120,6 +127,21 @@ def main() -> int:
         wait.until(EC.presence_of_element_located((By.ID, "professorScoutMascot")))
         mascot_img = driver.find_element(By.CSS_SELECTOR, "#professorScoutMascot img").get_attribute("src")
         require("assets/avatar/pose-" in mascot_img or "assets/avatar/loader-avatar" in mascot_img, "Professor Scout is not using local avatar assets")
+
+        # Narrow mobile viewport still renders the application without horizontal page overflow.
+        driver.set_window_size(390, 844)
+        time.sleep(0.35)
+        require(len(driver.find_elements(By.CSS_SELECTOR, "#cards .card")) > 0, "mobile viewport lost professor cards")
+        overflow = driver.execute_script("return document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        require(overflow <= 4, f"mobile layout has horizontal overflow: {overflow}px")
+
+        # Reduced-motion preference disables decorative mascot animation.
+        driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-reduced-motion", "value": "reduce"}]})
+        driver.refresh()
+        wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, "#cards .card")) > 0)
+        wait.until(EC.presence_of_element_located((By.ID, "professorScoutMascot")))
+        animation_name = driver.execute_script("return getComputedStyle(document.querySelector('#professorScoutMascot img')).animationName")
+        require(animation_name == "none", f"reduced-motion did not disable mascot animation: {animation_name}")
 
         print("V16 browser smoke test passed via file://")
         return 0
