@@ -35,7 +35,7 @@
 
   const mascot=document.createElement('div');
   mascot.id='professorScoutMascot';mascot.dataset.state='idle';mascot.className='is-collapsed';mascot.setAttribute('aria-live','polite');
-  mascot.innerHTML=`<button class="ps-avatar-btn" type="button" aria-label="باز کردن راهنمای Professor Scout" aria-expanded="false"><img src="${assets.idle}" alt="Professor Scout" decoding="async"></button><div class="ps-bubble" role="status"><b>Professor Scout</b><span>سلام! برای انتخاب بهتر استاد اینجام.</span></div>`;
+  mascot.innerHTML=`<button class="ps-avatar-btn" type="button" aria-label="باز کردن راهنمای Professor Scout" aria-expanded="false" title="Professor Scout"><img src="${assets.idle}" alt="Professor Scout" decoding="async"></button><div class="ps-bubble" role="status"><b>Professor Scout</b><span>سلام! برای انتخاب بهتر استاد اینجام.</span></div>`;
   document.body.appendChild(mascot);
   const avatarBtn=mascot.querySelector('.ps-avatar-btn'),mascotAvatar=mascot.querySelector('img'),text=mascot.querySelector('.ps-bubble span');
   mascotAvatar.onerror=()=>{mascotAvatar.onerror=null;mascotAvatar.src=fallback};
@@ -45,7 +45,7 @@
   function showBubble(ms=1900){clearTimeout(bubbleTimer);mascot.classList.remove('is-collapsed');avatarBtn.setAttribute('aria-expanded','true');if(ms>0)bubbleTimer=setTimeout(collapseBubble,ms)}
   function setState(s,hold=0,speak=true){clearTimeout(stateTimer);const state=assets[s]?s:'idle';mascot.dataset.state=state;setImage(mascotAvatar,state);text.textContent=messages[state]||messages.idle;if(speak)showBubble(reduced?900:Math.max(1400,hold||1800));if(hold>0)stateTimer=setTimeout(()=>{mascot.dataset.state='idle';setImage(mascotAvatar,'idle');text.textContent=messages.idle;collapseBubble()},hold)}
   avatarBtn.addEventListener('click',()=>mascot.classList.contains('is-collapsed')?showBubble(4200):collapseBubble());
-  setTimeout(()=>showBubble(reduced?900:(innerWidth<=650?1400:2200)),reduced?520:3200);
+  collapseBubble();
   window.addEventListener('scroll',collapseBubble,{passive:true});
 
   ['heroQ','q'].map(id=>document.getElementById(id)).filter(Boolean).forEach(el=>{el.addEventListener('focus',()=>setState('think',0,true));el.addEventListener('input',()=>setState(el.value.trim()?'search':'think',0,true));el.addEventListener('blur',()=>setTimeout(()=>setState(el.value.trim()?'success':'idle',2200,!!el.value.trim()),140))});
