@@ -1,27 +1,52 @@
-# Professor Scout avatar assets — V16
+# Professor Scout avatar system — V16
 
-Current V16 state:
-- `loader-avatar.webp` is the local fallback image extracted from the V15 loader.
-- The next step is replacing the static fallback with the user's pixel-art sprite/animation assets.
+The V16 character is based on the user-supplied Professor Scout pixel-art reference sheet: olive hoodie, dark cargo pants, glasses, dark hair, white sneakers, with idle/thinking/working/searching/saved/compare reactions.
 
-Planned states from the existing character system:
+## Repository implementation
+
+- `loader-avatar.webp` — current repository-local character image used by the loader and helper mascot.
+- `avatar-motion.js` — state machine and CSS motion layer. It does not require GIF, video, CDN, API or a server.
+
+The supplied reference sheet includes visual source material for these states:
+
 - idle
 - thinking
-- working / laptop
+- laptop / working
 - walking / arrival
+- search
 - success / saved
-- searching
 - results ready
 - compare / analysis
+- no-results / confused
+- richer-comments / reading
+- dark-mode reaction
 
-Recommended file structure:
+V16 currently implements the behavioral states in code using the local avatar asset. This keeps the repository lightweight and preserves direct `file://` compatibility. Dedicated per-pose binary sprites can be substituted later without changing the state API.
+
+## UI triggers wired in V16
+
+- Search field focus → thinking
+- Search typing → searching
+- Search completion → success
+- Professor card interaction → working/detail guidance
+- Saved-only toggle → success
+- Compare action → success
+- Load more → working
+- Empty results → no-results guidance
+- Drawer / comparison overlays → mascot hides to avoid collision
+- Escape → quick mascot visibility toggle when no drawer is open
+
+## Accessibility
+
+`prefers-reduced-motion: reduce` disables decorative motion while keeping the character and interface usable.
+
+## Architecture
 
 ```text
 assets/avatar/
   loader-avatar.webp
-  sprite-loader.png
-  sprite-ui.png
   avatar-motion.js
+  README.md
 ```
 
-Animation remains code-driven with CSS/JavaScript. Image files are local; no GIF/video/CDN/backend is required. `prefers-reduced-motion` must keep a static fallback.
+All runtime character behavior is local and static; no external dependency is required.
