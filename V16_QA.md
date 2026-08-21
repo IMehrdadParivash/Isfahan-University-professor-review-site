@@ -5,7 +5,7 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 ## Static/offline architecture
 
 - [x] HTML uses relative local paths.
-- [x] Professor Scout runtime asset is local (`assets/avatar/loader-avatar.webp`).
+- [x] Professor Scout runtime assets are local under `assets/avatar/`.
 - [x] Avatar motion is local JavaScript/CSS (`assets/avatar/avatar-motion.js`).
 - [x] V15 professor data remains split into local JavaScript files; no remote API is required.
 - [x] No CDN is required by V16.
@@ -15,14 +15,17 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 
 ## Avatar / interaction QA
 
-- [x] Story loader has arrival → thinking → building → ready states.
-- [x] Search focus/typing/completion updates Professor Scout state.
-- [x] Card/detail interaction produces working guidance.
-- [x] Save/compare/load-more reactions are wired.
-- [x] Empty-result state is observed after results re-render.
+- [x] Dedicated local poses exist for idle, think, work, walk, search, success, compare and empty states.
+- [x] Story loader switches poses across arrival → thinking → building → ready states.
+- [x] Search focus/typing/completion updates both Professor Scout state and pose.
+- [x] Card/detail interaction produces the working pose/guidance.
+- [x] Save/load-more reactions are wired.
+- [x] Compare uses its dedicated comparison pose.
+- [x] Empty-result state uses its dedicated no-results pose.
 - [x] Mascot avoids drawer/comparison overlays.
 - [x] `prefers-reduced-motion` disables decorative character animation.
-- [x] Current loader image is derived from the supplied Professor Scout reference sheet.
+- [x] Pose files are derived from the supplied Professor Scout reference sheet.
+- [x] `tools/verify-v16-assets.py` requires all avatar state files before release.
 
 ## Typography QA
 
