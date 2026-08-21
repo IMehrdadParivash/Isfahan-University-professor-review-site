@@ -22,12 +22,24 @@ FONT_FILES = {
     "assets/fonts/Kahroba-VF-FD.woff2": (334100, "7cc15af7f4bc8df6d0f62c191126f3e8da2d886acd18ab179071e07ecf1b186c"),
 }
 
+AVATAR_FILES = [
+    "assets/avatar/loader-avatar.webp",
+    "assets/avatar/pose-idle.webp",
+    "assets/avatar/pose-think.webp",
+    "assets/avatar/pose-work.webp",
+    "assets/avatar/pose-walk.webp",
+    "assets/avatar/pose-search.webp",
+    "assets/avatar/pose-success.webp",
+    "assets/avatar/pose-compare.webp",
+    "assets/avatar/pose-empty.webp",
+    "assets/avatar/avatar-motion.js",
+]
+
 REQUIRED_FILES = [
     "index.html",
     "assets/css/fonts.css",
-    "assets/avatar/loader-avatar.webp",
-    "assets/avatar/avatar-motion.js",
     "assets/js/app.js",
+    *AVATAR_FILES,
 ]
 
 for i in range(1, 9):
