@@ -170,6 +170,16 @@ def main() -> int:
         overflow = driver.execute_script("return document.documentElement.scrollWidth - document.documentElement.clientWidth")
         require(overflow <= 4, f"mobile layout has horizontal overflow: {overflow}px")
 
+        # The persistent Professor Scout footprint must remain avatar-sized at rest. Scrolling
+        # explicitly collapses any transient guidance bubble before measuring the fixed element.
+        driver.execute_script("window.scrollBy(0, 1)")
+        time.sleep(0.15)
+        mascot = driver.find_element(By.ID, "professorScoutMascot")
+        mascot_classes = mascot.get_attribute("class").split()
+        mascot_rect = driver.execute_script("const r=arguments[0].getBoundingClientRect(); return {w:r.width,h:r.height};", mascot)
+        require("is-collapsed" in mascot_classes, "Professor Scout guidance bubble did not collapse at rest")
+        require(mascot_rect["w"] <= 80 and mascot_rect["h"] <= 80, f"Professor Scout persistent footprint is too large on mobile: {mascot_rect}")
+
         # Reduced-motion preference disables decorative mascot animation.
         driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-reduced-motion", "value": "reduce"}]})
         driver.refresh()
