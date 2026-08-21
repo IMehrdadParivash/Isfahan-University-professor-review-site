@@ -11,6 +11,7 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 - [x] No CDN is required by V16.
 - [x] No backend/database/server is introduced by V16.
 - [x] Cloudflare Pages can serve the repository as static files with no build step.
+- [x] Automated GitHub Actions release gate is present at `.github/workflows/v16-release-gate.yml`.
 
 ## Avatar / interaction QA
 
@@ -31,8 +32,9 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 - [x] Accent/numeric role → Pinar V3 Variable.
 - [x] Student-voice/editorial role → Kahroba Pro Variable.
 - [x] System-font fallback remains available if a binary is missing.
-- [ ] All eleven WOFF2 binaries exist under `assets/fonts/`.
-- [ ] Uploaded font sizes/hashes match `assets/fonts/README.md`.
+- [x] Source WOFF2 binaries supplied for V16 were byte-size/SHA-256 checked against the verification manifest.
+- [ ] All eleven WOFF2 binaries exist under `assets/fonts/` in the repository.
+- [ ] Uploaded font sizes/hashes pass `python tools/verify-v16-assets.py` in the repository checkout.
 - [ ] Visual check confirms Persian digits and heading/body weights render as intended.
 
 ## Browser smoke test after fonts are present
