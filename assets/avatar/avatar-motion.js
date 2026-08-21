@@ -39,7 +39,7 @@
   document.body.appendChild(mascot);
   const avatarBtn=mascot.querySelector('.ps-avatar-btn'),mascotAvatar=mascot.querySelector('img'),text=mascot.querySelector('.ps-bubble span');
   mascotAvatar.onerror=()=>{mascotAvatar.onerror=null;mascotAvatar.src=fallback};
-  const messages={idle:'سلام! برای انتخاب بهتر استاد اینجام.',think:'دارم گزینه‌ها و فیلترها را بررسی می‌کنم…',search:'جست‌وجو کن؛ نتیجه‌ها را سریع‌تر پیدا می‌کنیم.',work:'جزئیات استاد را باز کن تا امتیازها و تجربه‌ها را ببینی.',compare:'بیا گزینه‌ها را کنار هم مقایسه کنیم.',success:'خوبه. حالا می‌توانی ذخیره یا مقایسه کنی.',empty:'چیزی با این فیلترها پیدا نشد؛ یکی از فیلترها را تغییر بده.'};
+  const messages={idle:'سلام! برای انتخاب بهتر استاد اینجام.',think:'دارم گزینه‌ها و فیلترها را بررسی می‌کنم…',search:'جست‌وجو کن؛ نتیجه‌ها را سریع‌تر پیدا می‌کنیم.',work:'جزئیات استاد را باز کن تا امتیازها و تجربه‌ها را ببینی.',compare:'بیا گزینه‌ها را کنار هم مقایسه کنیم.',success:'ذخیره شد؛ اگر خواستی گزینه‌ها را کنار هم مقایسه کن.',empty:'چیزی با این فیلترها پیدا نشد؛ یکی از فیلترها را تغییر بده.'};
   let stateTimer,bubbleTimer;
   function collapseBubble(){clearTimeout(bubbleTimer);mascot.classList.add('is-collapsed');avatarBtn.setAttribute('aria-expanded','false')}
   function showBubble(ms=1900){clearTimeout(bubbleTimer);mascot.classList.remove('is-collapsed');avatarBtn.setAttribute('aria-expanded','true');if(ms>0)bubbleTimer=setTimeout(collapseBubble,ms)}
@@ -49,12 +49,19 @@
   window.addEventListener('scroll',collapseBubble,{passive:true});
 
   ['heroQ','q'].map(id=>document.getElementById(id)).filter(Boolean).forEach(el=>{el.addEventListener('focus',()=>setState('think',0,true));el.addEventListener('input',()=>setState(el.value.trim()?'search':'think',0,true));el.addEventListener('blur',()=>setTimeout(()=>setState(el.value.trim()?'success':'idle',2200,!!el.value.trim()),140))});
-  document.getElementById('cards')?.addEventListener('click',()=>setState('work',2100,true));
+  const cards=document.getElementById('cards');
+  cards?.addEventListener('click',e=>{
+    const target=e.target instanceof Element?e.target:null;
+    if(!target)return;
+    if(target.closest('[data-save]')){setState('success',1900,true);return}
+    if(target.closest('[data-compare]')){setState('compare',2200,true);return}
+    if(target.closest('[data-open]'))setState('work',2100,true);
+  });
   document.getElementById('compareGo')?.addEventListener('click',()=>setState('compare',2700,true));
   document.getElementById('savedCheck')?.addEventListener('change',()=>setState('success',1900,true));
   document.getElementById('clear')?.addEventListener('click',()=>{setState('idle',0,false);collapseBubble()});
   document.getElementById('loadMore')?.addEventListener('click',()=>setState('work',1500,true));
-  const cards=document.getElementById('cards');if(cards&&'MutationObserver'in window){const inspect=()=>{if(cards.querySelector('.empty'))setState('empty',2600,true)};new MutationObserver(inspect).observe(cards,{childList:true,subtree:true})}
+  if(cards&&'MutationObserver'in window){const inspect=()=>{if(cards.querySelector('.empty'))setState('empty',2600,true)};new MutationObserver(inspect).observe(cards,{childList:true,subtree:true})}
   const drawer=document.getElementById('drawer'),compareModal=document.getElementById('compareModal'),compareBar=document.getElementById('compareBar');
   function overlapGuard(){const drawerOpen=drawer?.getAttribute('aria-hidden')==='false'||drawer?.classList.contains('open');const compareOpen=compareModal?.classList.contains('open')||compareModal?.classList.contains('show');mascot.classList.toggle('is-hidden',!!(drawerOpen||compareOpen));mascot.classList.toggle('has-comparebar',!!compareBar?.classList.contains('show'));if(drawerOpen||compareOpen)collapseBubble()}
   if('MutationObserver'in window){if(drawer)new MutationObserver(overlapGuard).observe(drawer,{attributes:true,attributeFilter:['class','aria-hidden']});if(compareModal)new MutationObserver(overlapGuard).observe(compareModal,{attributes:true,attributeFilter:['class','style']});if(compareBar)new MutationObserver(overlapGuard).observe(compareBar,{attributes:true,attributeFilter:['class']})}
