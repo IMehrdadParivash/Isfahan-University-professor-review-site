@@ -21,7 +21,7 @@ jobs:
     name: Static/offline sanity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Check required local references
         shell: python
         run: |
@@ -62,10 +62,20 @@ jobs:
 
           print('Static/offline sanity checks passed.')
 
+  browser-smoke:
+    name: Browser smoke — direct file mode
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install browser test dependency
+        run: python -m pip install --disable-pip-version-check selenium
+      - name: Exercise V16 through file://
+        run: python tools/browser-smoke-v16.py
+
   licensed-assets:
     name: V16 asset verification
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify required files and licensed font hashes
         run: python tools/verify-v16-assets.py
