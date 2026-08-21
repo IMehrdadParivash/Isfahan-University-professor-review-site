@@ -71,6 +71,17 @@ jobs:
         run: python -m pip install --disable-pip-version-check selenium
       - name: Exercise V16 through file://
         run: python tools/browser-smoke-v16.py
+      - name: Capture V16 QA screenshots
+        if: success()
+        run: python tools/capture-v16-screenshots.py
+      - name: Upload V16 QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v16-qa-screenshots
+          path: artifacts/*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
   licensed-assets:
     name: V16 asset verification
