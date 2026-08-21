@@ -41,8 +41,10 @@
     if(caption&&storyAi)storyAi.textContent=caption;
   }
   if(loader){
-    if(reduced){story('done','> Professor Scout ready','Professor Scout · ready');}
-    else{
+    if(reduced){
+      story('done','> Professor Scout ready','Professor Scout · ready');
+      setTimeout(()=>loader.classList.add('hide'),450);
+    }else{
       story('arrive','> idea: choose professors better','Human idea');
       setTimeout(()=>story('think','> understand student needs','Human intent → structured task'),600);
       setTimeout(()=>story('work','> build search · filters · compare','AI execution → interface'),1400);
