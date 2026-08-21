@@ -1,52 +1,61 @@
 # Professor Scout avatar system — V16
 
-The V16 character is based on the user-supplied Professor Scout pixel-art reference sheet: olive hoodie, dark cargo pants, glasses, dark hair, white sneakers, with idle/thinking/working/searching/saved/compare reactions.
+The V16 character is based on the user-supplied Professor Scout pixel-art reference sheet: olive hoodie, dark cargo pants, glasses, dark hair, white sneakers, with task-specific reactions.
 
 ## Repository implementation
 
-- `loader-avatar.webp` — repository-local 128×128 WebP derived from the supplied Professor Scout sprite sheet, using the seated laptop/work pose. It is used by the story loader and the helper mascot.
-- `avatar-motion.js` — state machine and CSS motion layer. It does not require GIF, video, CDN, API or a server.
+V16 now uses dedicated local WebP poses rather than reusing one static image for every state:
 
-The supplied reference sheet provides the visual language for these states:
+- `pose-idle.webp` — default helper state
+- `pose-think.webp` — search focus / thinking
+- `pose-work.webp` — professor details and loading more results
+- `pose-walk.webp` — story-loader arrival
+- `pose-search.webp` — active search
+- `pose-success.webp` — ready / saved / successful completion
+- `pose-compare.webp` — compare flow
+- `pose-empty.webp` — no-results guidance
+- `loader-avatar.webp` — 128×128 local fallback retained for resilience
+- `avatar-motion.js` — state machine, image switching and CSS motion layer
 
-- idle
-- thinking
-- laptop / working
-- walking / arrival
-- search
-- success / saved
-- results ready
-- compare / analysis
-- no-results / confused
-- richer-comments / reading
-- dark-mode reaction
+All pose files are derived from the supplied Professor Scout sheet and are stored locally in this repository. No GIF, video, CDN, API, backend or server is required.
 
-V16 currently implements those behavioral states in code using the local Professor Scout asset. This keeps the repository lightweight and preserves direct `file://` compatibility. Dedicated per-pose local sprites can be substituted later without changing the state API.
+## Story-loader sequence
+
+1. `walk` — creator/assistant arrives
+2. `think` — understands the task
+3. `work` — builds search/filter/compare experience
+4. `success` — site ready
+
+With `prefers-reduced-motion: reduce`, decorative motion is disabled and the loader resolves quickly to the ready state.
 
 ## UI triggers wired in V16
 
-- Search field focus → thinking
-- Search typing → searching
-- Search completion → success
-- Professor card interaction → working/detail guidance
-- Saved-only toggle → success
-- Compare action → success
-- Load more → working
-- Empty results → no-results guidance
+- Search field focus → `think`
+- Search typing → `search`
+- Search completion → `success`
+- Professor card/detail interaction → `work`
+- Saved-only toggle → `success`
+- Compare action → `compare`
+- Load more → `work`
+- Empty results → `empty`
 - Drawer / comparison overlays → mascot hides to avoid collision
-- Escape → quick mascot visibility toggle when no drawer is open
-
-## Accessibility
-
-`prefers-reduced-motion: reduce` disables decorative motion while keeping the character and interface usable.
+- Escape → quick mascot visibility toggle when no overlay is open
 
 ## Architecture
 
 ```text
 assets/avatar/
   loader-avatar.webp
+  pose-idle.webp
+  pose-think.webp
+  pose-work.webp
+  pose-walk.webp
+  pose-search.webp
+  pose-success.webp
+  pose-compare.webp
+  pose-empty.webp
   avatar-motion.js
   README.md
 ```
 
-All runtime character behavior is local and static; no external dependency is required.
+The state API is intentionally simple, so additional poses from the original sheet can be introduced later without changing the static/offline architecture.
