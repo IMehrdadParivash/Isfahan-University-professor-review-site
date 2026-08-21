@@ -41,19 +41,23 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 - [ ] Uploaded font sizes/hashes pass `python tools/verify-v16-assets.py` in the repository checkout.
 - [ ] Visual check confirms Persian digits and heading/body weights render as intended.
 
-## Browser smoke test after fonts are present
+## Automated browser smoke test
 
-- [ ] Open `index.html` directly from disk and confirm the page reaches the professor list.
-- [ ] Search by professor name.
-- [ ] Filter by faculty, department and course.
-- [ ] Sort by review count, rating and name.
-- [ ] Open professor drawer and review dimensions/experiences.
-- [ ] Save a professor and reload to verify local persistence.
-- [ ] Compare two or three professors.
-- [ ] Toggle dark/light theme.
-- [ ] Confirm mobile layout at narrow viewport.
-- [ ] Confirm reduced-motion behavior.
-- [ ] Deploy the same commit to Cloudflare Pages and repeat a short smoke test.
+GitHub Actions opens the site through a real `file://` URL in headless Chrome. This intentionally tests the no-server/offline execution path; Selenium is CI-only and is not a runtime dependency of the site.
+
+- [x] Open `index.html` directly from disk and confirm the page reaches the professor list.
+- [x] Search by professor name.
+- [x] Filter by faculty, department and course.
+- [x] Sort by review count, rating and name.
+- [x] Open professor drawer and confirm detail content renders.
+- [x] Save a professor and reload to verify local persistence.
+- [x] Compare two professors and open the comparison modal.
+- [x] Toggle dark/light theme.
+- [x] Confirm narrow mobile viewport renders without horizontal page overflow.
+- [x] Confirm reduced-motion behavior disables decorative mascot animation.
+- [x] Confirm Professor Scout uses repository-local pose assets at runtime.
+- [ ] After the real WOFF2 binaries are committed, rerun the same browser smoke test with local fonts loaded and visually inspect typography.
+- [ ] Deploy the same release commit to Cloudflare Pages and repeat a short production smoke test.
 
 ## Merge policy
 
