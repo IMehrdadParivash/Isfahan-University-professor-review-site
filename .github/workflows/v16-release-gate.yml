@@ -1,0 +1,71 @@
+name: V16 Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'assets/**'
+      - 'tools/**'
+      - 'V16_QA.md'
+      - 'CLOUDFLARE_PAGES.md'
+      - '_headers'
+      - '.github/workflows/v16-release-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-sanity:
+    name: Static/offline sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check required local references
+        shell: python
+        run: |
+          from pathlib import Path
+          import re, sys
+
+          root = Path('.')
+          html = (root / 'index.html').read_text(encoding='utf-8')
+          css = (root / 'assets/css/fonts.css').read_text(encoding='utf-8')
+
+          required = [
+              'assets/avatar/loader-avatar.webp',
+              'assets/avatar/avatar-motion.js',
+              'assets/css/fonts.css',
+              'assets/js/app.js',
+          ]
+          failures = []
+          for rel in required:
+              if rel not in html:
+                  failures.append(f'index.html does not reference {rel}')
+              if not (root / rel).is_file():
+                  failures.append(f'missing file: {rel}')
+
+          external = re.findall(r'(?:src|href)=["\']https?://[^"\']+', html, flags=re.I)
+          if external:
+              failures.append('remote dependency in index.html: ' + ', '.join(external))
+
+          css_external = re.findall(r'url\(["\']?https?://', css, flags=re.I)
+          if css_external:
+              failures.append('remote dependency in assets/css/fonts.css')
+
+          if 'assets/fonts/' not in css and '../fonts/' not in css:
+              failures.append('fonts.css is not wired to local font paths')
+
+          if failures:
+              print('\n'.join('FAIL: ' + x for x in failures))
+              sys.exit(1)
+
+          print('Static/offline sanity checks passed.')
+
+  licensed-assets:
+    name: V16 asset verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required files and licensed font hashes
+        run: python tools/verify-v16-assets.py
