@@ -1,4 +1,4 @@
-/* V16 — Professor Scout code-driven avatar motion. Uses only the local loader-avatar.webp asset. */
+/* V16 — Professor Scout code-driven avatar motion. Local-only, offline-safe, reduced-motion aware. */
 (()=>{
   const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const asset='assets/avatar/loader-avatar.webp';
@@ -9,9 +9,9 @@
 
   const css=`
   .story-avatar{transform-origin:50% 100%;will-change:transform,filter;image-rendering:auto}
-  .story-avatar.v16-arrive{animation:v16Arrive .58s cubic-bezier(.2,.8,.2,1) both}
-  .story-avatar.v16-think{animation:v16Think .8s ease-in-out both}
-  .story-avatar.v16-work{animation:v16Work .72s ease-in-out infinite alternate}
+  .story-avatar.v16-arrive{animation:v16Arrive .55s cubic-bezier(.2,.8,.2,1) both}
+  .story-avatar.v16-think{animation:v16Think .85s ease-in-out both}
+  .story-avatar.v16-work{animation:v16Work .7s ease-in-out infinite alternate}
   .story-avatar.v16-done{animation:v16Done .55s cubic-bezier(.2,.8,.2,1) both;filter:drop-shadow(0 18px 28px rgba(216,242,122,.25))}
   @keyframes v16Arrive{from{opacity:0;transform:translateX(42px) scale(.94)}to{opacity:1;transform:none}}
   @keyframes v16Think{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-1.5deg)}}
@@ -26,6 +26,7 @@
   #professorScoutMascot[data-state="search"] img{animation:v16Search .8s ease-in-out infinite alternate}
   #professorScoutMascot[data-state="work"] img{animation:v16Work .65s ease-in-out infinite alternate}
   #professorScoutMascot[data-state="success"] img{animation:v16Done .6s ease-out both}
+  #professorScoutMascot[data-state="empty"] img{filter:grayscale(.18) drop-shadow(0 10px 18px rgba(0,0,0,.35));animation:v16Think 1.2s ease-in-out infinite}
   @keyframes v16MascotIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
   @keyframes v16Search{from{transform:translateX(0) rotate(0)}to{transform:translateX(4px) rotate(-1.5deg)}}
   @media(max-width:650px){#professorScoutMascot{left:8px;bottom:8px;max-width:calc(100vw - 16px)}#professorScoutMascot img{width:62px;height:62px}#professorScoutMascot .ps-bubble{max-width:220px;font-size:9px}}
@@ -43,14 +44,14 @@
     if(reduced){story('done','> Professor Scout ready','Professor Scout · ready');}
     else{
       story('arrive','> idea: choose professors better','Human idea');
-      setTimeout(()=>story('think','> understand student needs','Human intent → structured task'),650);
-      setTimeout(()=>story('work','> build search · filters · compare','AI execution → interface'),1450);
-      setTimeout(()=>story('done','> site ready ✓','Professor Scout · ready'),2450);
+      setTimeout(()=>story('think','> understand student needs','Human intent → structured task'),600);
+      setTimeout(()=>story('work','> build search · filters · compare','AI execution → interface'),1400);
+      setTimeout(()=>story('done','> site ready ✓','Professor Scout · ready'),2400);
     }
   }
 
   const mascot=document.createElement('div');
-  mascot.id='professorScoutMascot';mascot.dataset.state='idle';
+  mascot.id='professorScoutMascot';mascot.dataset.state='idle';mascot.setAttribute('aria-live','polite');
   mascot.innerHTML=`<img src="${asset}" alt="Professor Scout" decoding="async"><div class="ps-bubble"><b>Professor Scout</b><span>سلام! برای انتخاب بهتر استاد اینجام.</span></div>`;
   document.body.appendChild(mascot);
   const text=mascot.querySelector('span');
@@ -59,21 +60,47 @@
     think:'دارم گزینه‌ها و فیلترها را بررسی می‌کنم…',
     search:'جست‌وجو کن؛ نتیجه‌ها را سریع‌تر پیدا می‌کنیم.',
     work:'جزئیات استاد را باز کن تا امتیازها و تجربه‌ها را ببینی.',
-    success:'خوبه. حالا می‌توانی ذخیره یا مقایسه کنی.'
+    success:'خوبه. حالا می‌توانی ذخیره یا مقایسه کنی.',
+    empty:'چیزی با این فیلترها پیدا نشد؛ یکی از فیلترها را تغییر بده.'
   };
-  function setState(s){mascot.dataset.state=s;text.textContent=messages[s]||messages.idle;}
+  let stateTimer;
+  function setState(s,hold=0){
+    clearTimeout(stateTimer);mascot.dataset.state=s;text.textContent=messages[s]||messages.idle;
+    if(hold>0)stateTimer=setTimeout(()=>setState('idle'),hold);
+  }
 
   const inputs=['heroQ','q'].map(id=>document.getElementById(id)).filter(Boolean);
   inputs.forEach(el=>{
     el.addEventListener('focus',()=>setState('think'));
     el.addEventListener('input',()=>setState(el.value.trim()?'search':'think'));
-    el.addEventListener('blur',()=>setTimeout(()=>setState(el.value.trim()?'success':'idle'),140));
+    el.addEventListener('blur',()=>setTimeout(()=>setState(el.value.trim()?'success':'idle',2400),140));
   });
-  document.getElementById('cards')?.addEventListener('click',()=>setState('work'));
-  document.getElementById('compareGo')?.addEventListener('click',()=>setState('success'));
-  document.getElementById('savedCheck')?.addEventListener('change',()=>setState('success'));
+  document.getElementById('cards')?.addEventListener('click',()=>setState('work',2200));
+  document.getElementById('compareGo')?.addEventListener('click',()=>setState('success',2600));
+  document.getElementById('savedCheck')?.addEventListener('change',()=>setState('success',2200));
+  document.getElementById('clear')?.addEventListener('click',()=>setState('idle'));
+  document.getElementById('loadMore')?.addEventListener('click',()=>setState('work',1500));
 
-  window.addEventListener('keydown',e=>{
-    if(e.key==='Escape')mascot.classList.toggle('is-hidden');
-  });
+  const cards=document.getElementById('cards');
+  if(cards&&'MutationObserver' in window){
+    const inspect=()=>{
+      const empty=cards.querySelector('.empty');
+      if(empty)setState('empty');
+    };
+    new MutationObserver(inspect).observe(cards,{childList:true,subtree:true});
+  }
+
+  const drawer=document.getElementById('drawer');
+  const compareModal=document.getElementById('compareModal');
+  if('MutationObserver' in window){
+    const overlapGuard=()=>{
+      const drawerOpen=drawer?.getAttribute('aria-hidden')==='false'||drawer?.classList.contains('open');
+      const compareOpen=compareModal?.classList.contains('open')||compareModal?.classList.contains('show');
+      mascot.classList.toggle('is-hidden',!!(drawerOpen||compareOpen));
+    };
+    if(drawer)new MutationObserver(overlapGuard).observe(drawer,{attributes:true,attributeFilter:['class','aria-hidden']});
+    if(compareModal)new MutationObserver(overlapGuard).observe(compareModal,{attributes:true,attributeFilter:['class','style']});
+  }
+
+  window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!drawer?.classList.contains('open'))mascot.classList.toggle('is-hidden');});
 })();
