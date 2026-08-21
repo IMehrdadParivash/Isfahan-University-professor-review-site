@@ -23,9 +23,14 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 - [x] Compare uses its dedicated comparison pose.
 - [x] Empty-result state uses its dedicated no-results pose.
 - [x] Mascot avoids drawer/comparison overlays.
+- [x] Persistent mascot rests as a compact avatar-only control instead of a content-blocking chat strip.
+- [x] Guidance bubble appears only on explicit mascot interaction or meaningful UI state changes and collapses on scroll/Escape.
+- [x] Mascot moves above the compare bar instead of overlapping it.
+- [x] Mobile browser CI verifies the collapsed persistent footprint stays avatar-sized (≤ 80×80 CSS px).
 - [x] `prefers-reduced-motion` disables decorative character animation.
 - [x] Pose files are derived from the supplied Professor Scout reference sheet.
 - [x] `tools/verify-v16-assets.py` requires all avatar state files before release.
+- [x] Automated desktop/mobile/reduced-motion screenshots were reviewed after the compact-mascot change and no persistent guidance strip masks the page at rest.
 
 ## Typography QA
 
@@ -54,6 +59,7 @@ GitHub Actions opens the site through a real `file://` URL in headless Chrome. T
 - [x] Compare two professors and open the comparison modal.
 - [x] Toggle dark/light theme.
 - [x] Confirm narrow mobile viewport renders without horizontal page overflow.
+- [x] Confirm the idle mascot footprint remains compact on mobile.
 - [x] Confirm reduced-motion behavior disables decorative mascot animation.
 - [x] Confirm Professor Scout uses repository-local pose assets at runtime.
 - [ ] After the real WOFF2 binaries are committed, rerun the same browser smoke test with local fonts loaded and visually inspect typography.
