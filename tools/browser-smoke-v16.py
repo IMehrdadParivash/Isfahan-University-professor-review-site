@@ -19,6 +19,19 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "index.html"
+FONT_PATHS = [
+    "assets/fonts/RaviFaNum-Regular.woff2",
+    "assets/fonts/RaviFaNum-Medium.woff2",
+    "assets/fonts/RaviFaNum-SemiBold.woff2",
+    "assets/fonts/RaviFaNum-Bold.woff2",
+    "assets/fonts/RaviFaNum-ExtraBlack.woff2",
+    "assets/fonts/Anjoman-Regular.woff2",
+    "assets/fonts/Anjoman-Bold.woff2",
+    "assets/fonts/Anjoman-ExtraBold.woff2",
+    "assets/fonts/Anjoman-Heavy.woff2",
+    "assets/fonts/Pinar-VF-FD.woff2",
+    "assets/fonts/Kahroba-VF-FD.woff2",
+]
 
 
 def require(condition: bool, message: str) -> None:
@@ -129,6 +142,26 @@ def main() -> int:
         wait.until(EC.presence_of_element_located((By.ID, "professorScoutMascot")))
         mascot_img = driver.find_element(By.CSS_SELECTOR, "#professorScoutMascot img").get_attribute("src")
         require("assets/avatar/pose-" in mascot_img or "assets/avatar/loader-avatar" in mascot_img, "Professor Scout is not using local avatar assets")
+
+        # When all licensed WOFF2 binaries are present, browser CI also verifies that every
+        # V16 font family can be loaded through local file URLs. Until then the site is
+        # expected to use its system-font fallback and the exact asset verifier remains red.
+        if all((ROOT / rel).is_file() for rel in FONT_PATHS):
+            loaded = driver.execute_async_script(
+                """
+                const done = arguments[0];
+                const families = ['RaviV16','AnjomanV16','PinarV16','KahrobaV16'];
+                Promise.all(families.map(f => document.fonts.load(`16px "${f}"`, 'استاد ۱۲۳')
+                  .then(items => [f, items.length])))
+                  .then(done)
+                  .catch(err => done([['ERROR', String(err)]]));
+                """
+            )
+            font_status = {name: count for name, count in loaded}
+            require(all(font_status.get(name, 0) > 0 for name in ("RaviV16", "AnjomanV16", "PinarV16", "KahrobaV16")), f"local V16 webfonts did not load: {font_status}")
+            print("V16 local webfont families loaded in browser.")
+        else:
+            print("V16 webfont browser-load check skipped: WOFF2 release files not all present yet.")
 
         # Narrow mobile viewport still renders the application without horizontal page overflow.
         driver.set_window_size(390, 844)
