@@ -4,10 +4,10 @@ The V16 character is based on the user-supplied Professor Scout pixel-art refere
 
 ## Repository implementation
 
-- `loader-avatar.webp` — current repository-local character image used by the loader and helper mascot.
+- `loader-avatar.webp` — repository-local 128×128 WebP derived from the supplied Professor Scout sprite sheet, using the seated laptop/work pose. It is used by the story loader and the helper mascot.
 - `avatar-motion.js` — state machine and CSS motion layer. It does not require GIF, video, CDN, API or a server.
 
-The supplied reference sheet includes visual source material for these states:
+The supplied reference sheet provides the visual language for these states:
 
 - idle
 - thinking
@@ -21,7 +21,7 @@ The supplied reference sheet includes visual source material for these states:
 - richer-comments / reading
 - dark-mode reaction
 
-V16 currently implements the behavioral states in code using the local avatar asset. This keeps the repository lightweight and preserves direct `file://` compatibility. Dedicated per-pose binary sprites can be substituted later without changing the state API.
+V16 currently implements those behavioral states in code using the local Professor Scout asset. This keeps the repository lightweight and preserves direct `file://` compatibility. Dedicated per-pose local sprites can be substituted later without changing the state API.
 
 ## UI triggers wired in V16
 
