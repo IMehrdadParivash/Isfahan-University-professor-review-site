@@ -84,12 +84,14 @@ def main() -> int:
             time.sleep(0.2)
             require(len(driver.find_elements(By.CSS_SELECTOR, "#cards .card")) > 0, f"sort={value} removed all rendered cards unexpectedly")
 
-        # Drawer/detail interaction.
+        # Drawer/detail interaction. Opening class may flip before the title text is painted,
+        # so wait for both the open state and populated content.
         first_open = driver.find_element(By.CSS_SELECTOR, "#cards [data-open]")
         driver.execute_script("arguments[0].click()", first_open)
         drawer = driver.find_element(By.ID, "drawer")
         wait.until(lambda d: "open" in drawer.get_attribute("class").split() or drawer.get_attribute("aria-hidden") == "false")
-        require(driver.find_element(By.ID, "dName").text.strip(), "drawer opened without professor title")
+        wait.until(lambda d: d.find_element(By.ID, "dName").text.strip() != "")
+        require(driver.find_element(By.ID, "drawerBody").text.strip(), "drawer opened without detail content")
         driver.execute_script("arguments[0].click()", driver.find_element(By.ID, "drawerClose"))
 
         # Saved state persists through localStorage/reload when supported by browser.
@@ -114,7 +116,7 @@ def main() -> int:
             driver.execute_script("arguments[0].click()", compare_go)
             modal = driver.find_element(By.ID, "compareModal")
             wait.until(lambda d: any(x in modal.get_attribute("class").split() for x in ("show", "open")))
-            require(driver.find_element(By.ID, "compareBody").text.strip(), "comparison modal opened without content")
+            wait.until(lambda d: d.find_element(By.ID, "compareBody").text.strip() != "")
             driver.execute_script("arguments[0].click()", driver.find_element(By.ID, "compareClose"))
 
         # Theme toggle.
