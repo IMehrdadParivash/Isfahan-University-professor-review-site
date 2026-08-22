@@ -1,0 +1,69 @@
+/* UI hotfix — filter visibility + light-theme rendering stability. */
+
+/* The full filter panel should stay in document flow instead of covering results while scrolling. */
+.filters-wrap{
+  position:relative !important;
+  top:auto !important;
+  z-index:1 !important;
+  background:none !important;
+}
+
+/* Avoid translucent blur/compositing artifacts in light mode. */
+[data-theme="light"] body{
+  background:linear-gradient(180deg,#f7f7f2 0,#fbfbf7 32rem,#f7f7f2 100%);
+}
+[data-theme="light"] .topbar{
+  background:rgba(247,247,242,.98);
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+[data-theme="light"] .metrics,
+[data-theme="light"] .filters,
+[data-theme="light"] .comparebar{
+  background:#fff;
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+}
+[data-theme="light"] .hero-frame,
+[data-theme="light"] .reliable,
+[data-theme="light"] .card{
+  background:var(--surface);
+}
+[data-theme="light"] .data-pill,
+[data-theme="light"] .kicker,
+[data-theme="light"] .hero-chips span,
+[data-theme="light"] .badge,
+[data-theme="light"] .chip,
+[data-theme="light"] .ctag{
+  background:rgba(23,24,29,.025);
+}
+[data-theme="light"] #professorScoutMascot .ps-avatar-btn,
+[data-theme="light"] #professorScoutMascot .ps-bubble{
+  background:#fff !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+/* Keep Professor Scout visible while the professor drawer is open. */
+#professorScoutMascot.with-drawer{
+  left:auto !important;
+  right:14px !important;
+  z-index:76 !important;
+}
+#professorScoutMascot.with-drawer .ps-bubble{
+  left:auto !important;
+  right:54px !important;
+  border-radius:16px 16px 6px 16px !important;
+  transform-origin:bottom right !important;
+}
+
+@media(max-width:650px){
+  #professorScoutMascot.with-drawer{
+    left:auto !important;
+    right:8px !important;
+  }
+  #professorScoutMascot.with-drawer .ps-bubble{
+    left:auto !important;
+    right:36px !important;
+  }
+}
