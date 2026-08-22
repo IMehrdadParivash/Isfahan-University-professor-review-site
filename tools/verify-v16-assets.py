@@ -2,11 +2,12 @@
 """Verify V16 local release assets without requiring a build step."""
 from __future__ import annotations
 
+import argparse
 import hashlib
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 FONT_FILES = {
     "assets/fonts/RaviFaNum-Regular.woff2": (43204, "4585ddee90901e505dad17a6d446a2c9459cd4530d2da859fd1811b7cc1d3b02"),
@@ -59,18 +60,31 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=REPO_ROOT,
+        help="Release root to verify (default: repository root)",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
+    root = parse_args().root.resolve()
     failures = 0
-    print("V16 required static files")
+    print(f"V16 verification root: {root}")
+    print("\nV16 required static files")
     for rel in REQUIRED_FILES:
-        p = ROOT / rel
+        p = root / rel
         ok = p.is_file() and p.stat().st_size > 0
         print(f"{'OK' if ok else 'MISSING':7} {rel}")
         failures += 0 if ok else 1
 
     print("\nV16 licensed local fonts")
     for rel, (expected_size, expected_hash) in FONT_FILES.items():
-        p = ROOT / rel
+        p = root / rel
         if not p.is_file():
             print(f"MISSING {rel}")
             failures += 1
