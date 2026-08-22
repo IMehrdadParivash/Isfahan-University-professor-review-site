@@ -42,10 +42,10 @@ def main():
         # Full filter panel must not stay pinned over the results while scrolling.
         filter_position = driver.execute_script("return getComputedStyle(document.querySelector('.filters-wrap')).position")
         require(filter_position != "sticky", f"filter panel is still sticky: {filter_position}")
-        driver.execute_script("window.scrollTo(0, document.querySelector('#cards').offsetTop + 600)")
-        time.sleep(0.15)
+        driver.execute_script("document.documentElement.style.scrollBehavior='auto'; document.querySelectorAll('#cards .card')[10].scrollIntoView({block:'start'});")
+        time.sleep(0.1)
         filter_rect = driver.execute_script("const r=document.querySelector('.filters-wrap').getBoundingClientRect(); return {top:r.top,bottom:r.bottom};")
-        require(filter_rect["bottom"] < 100, f"filter panel still obstructs scrolled content: {filter_rect}")
+        require(filter_rect["bottom"] < 0, f"filter panel still obstructs scrolled content: {filter_rect}")
 
         # Light mode should use opaque surfaces instead of blurred translucent layers.
         html_theme = driver.find_element(By.TAG_NAME, "html").get_attribute("data-theme")
