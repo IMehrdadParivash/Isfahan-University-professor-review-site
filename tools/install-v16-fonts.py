@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 """Install the user-supplied V16 webfonts from local ZIP archives.
 
-This script does not download or contain font binaries. Put the licensed archives
-in the repository root or in ./vendor-fonts/, then run:
+This script never downloads fonts. Put the licensed archives in the repository
+root or in ./vendor-fonts/ and run either:
 
     python tools/install-v16-fonts.py
 
-It extracts only the eleven WOFF2 files used by the site and verifies their
-byte sizes and SHA-256 hashes against the V16 release manifest.
+or, to keep proprietary binaries out of the source checkout and install them
+only into a staged deployment directory:
+
+    python tools/install-v16-fonts.py --dest-root .release/v16
+
+Only the eleven WOFF2 files used by V16 are extracted, and every output is
+verified by byte size and SHA-256 before it is written.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 from pathlib import Path
-import shutil
 import sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-DEST = ROOT / "assets" / "fonts"
 SEARCH_DIRS = [ROOT, ROOT / "vendor-fonts"]
 
 FILES = {
@@ -48,8 +52,23 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dest-root",
+        type=Path,
+        default=ROOT,
+        help="Root directory that should receive assets/fonts (default: repository root)",
+    )
+    return parser.parse_args()
+
+
 def main() -> int:
-    DEST.mkdir(parents=True, exist_ok=True)
+    args = parse_args()
+    dest_root = args.dest_root.resolve()
+    dest = dest_root / "assets" / "fonts"
+    dest.mkdir(parents=True, exist_ok=True)
+
     archive_cache: dict[Path, zipfile.ZipFile] = {}
     failures: list[str] = []
 
@@ -77,9 +96,13 @@ def main() -> int:
                 )
                 continue
 
-            target = DEST / out_name
+            target = dest / out_name
             target.write_bytes(data)
-            print(f"OK  {target.relative_to(ROOT)}")
+            try:
+                shown = target.relative_to(dest_root)
+            except ValueError:
+                shown = target
+            print(f"OK  {shown}")
     finally:
         for zf in archive_cache.values():
             zf.close()
@@ -90,8 +113,8 @@ def main() -> int:
             print("-", item)
         return 1
 
-    print("\nAll V16 webfonts installed and verified.")
-    print("Next: python tools/verify-v16-assets.py")
+    print(f"\nAll V16 webfonts installed and verified under: {dest_root}")
+    print(f"Next: python tools/verify-v16-assets.py --root {dest_root}")
     return 0
 
 
