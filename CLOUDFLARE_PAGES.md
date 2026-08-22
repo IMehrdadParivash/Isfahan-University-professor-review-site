@@ -8,6 +8,8 @@ There are two supported deployment paths depending on the font license.
 
 This keeps proprietary WOFF2 binaries out of Git history while still producing the exact static site that Cloudflare should serve.
 
+> **Cloudflare project-type note:** Direct Upload and Git integration are separate Pages project types. Cloudflare's current Pages documentation states that a Direct Upload project cannot later be switched to Git integration; moving to Git integration requires creating a new Pages project. Choose the project type deliberately.
+
 1. Keep the licensed source font archives in the repository root or `vendor-fonts/` **on the deployment machine only**. The archives are gitignored.
 2. Run:
 
@@ -16,8 +18,19 @@ This keeps proprietary WOFF2 binaries out of Git history while still producing t
    ```
 
 3. The script creates `.release/v16/`, copies only runtime site files, extracts the exact eleven licensed WOFF2 files into the staged copy, verifies every size/SHA-256 value, and leaves the source checkout untouched.
-4. Deploy the **contents of `.release/v16/`** with Cloudflare Pages Direct Upload. Do not upload the `.release` parent directory.
-5. No build command or runtime environment variables are required by the site itself.
+4. In the Cloudflare dashboard open **Workers & Pages → Create application → Pages / Direct Upload (drag and drop)**.
+5. Enter the Pages project name and upload the **contents of `.release/v16/`** (or the staged folder itself where the UI accepts a folder). Do not upload the `.release` parent directory.
+6. Select **Deploy site** / **Save and Deploy**.
+7. No build command or runtime environment variables are required by the site itself.
+
+Cloudflare also supports Direct Upload through Wrangler. For a folder that has already been staged and strictly verified:
+
+```bash
+npx wrangler pages project create <PROJECT_NAME>
+npx wrangler pages deploy .release/v16 --project-name=<PROJECT_NAME>
+```
+
+Wrangler uploads a folder; the dashboard drag-and-drop flow accepts a folder or ZIP. Do not place licensed source archives inside the uploaded release directory.
 
 This is the preferred path when the font license permits normal webfont deployment but does not permit publishing raw font binaries in a public source repository.
 
@@ -27,31 +40,29 @@ Use this only if the applicable font license explicitly permits the WOFF2 files 
 
 Recommended Pages settings:
 
-- Production branch: `main` after V16 is merged
+- Production branch: `main`
 - Framework preset: None
 - Build command: leave empty
 - Build output directory: repository root (`/`)
 - Root directory: repository root
 - Environment variables: none required
 
-Before merging, place the exact eleven manifest WOFF2 files under `assets/fonts/` and run:
+Place the exact eleven manifest WOFF2 files under `assets/fonts/` and run:
 
 ```bash
 python tools/verify-v16-assets.py
 ```
 
-Then the GitHub Actions asset gate should become fully green and the browser test will additionally verify all four local font families.
+The browser smoke test will additionally verify all four local font families once the binaries are present in the checkout.
 
-## Release flow
+## Current V16 release flow
 
-1. Keep `main` on the last stable release while V16 is tested in `v16` / PR #1.
-2. Complete source/static/avatar/browser QA.
-3. Verify the selected font files against `assets/fonts/README.md` and `V16_FONT_QA.md`.
-4. Choose Path A or Path B according to the actual webfont/repository distribution rights.
-5. Complete the typography visual check using the same font binaries that will be deployed.
-6. Merge PR #1 into `main` only when the chosen release path is reproducible and verified.
-7. Deploy the exact release contents to Cloudflare Pages.
-8. Repeat the short production smoke test against the resulting `pages.dev` URL.
+1. V16 source/static/avatar/browser QA completed on PR #1.
+2. The exact selected font files were verified against `assets/fonts/README.md` and `V16_FONT_QA.md`.
+3. A strict staged runtime containing the exact eleven WOFF2 files passed the complete asset/hash verifier.
+4. PR #1 was merged into `main`.
+5. Create/deploy the Cloudflare Pages project using Path A unless repository redistribution rights explicitly support Path B.
+6. Repeat the short production smoke test against the generated `pages.dev` URL.
 
 ## What is continuously tested
 
@@ -65,4 +76,14 @@ The optional `_headers` file affects HTTP hosting only; it does not change direc
 
 ## Final production check
 
-After deployment, verify: initial render, one search, one professor drawer, one comparison, font rendering/Persian digits, and desktop/mobile viewports.
+After deployment, verify:
+
+- initial render and story loader
+- Ravi/Anjoman/Pinar/Kahroba rendering and Persian digits
+- one professor search
+- one professor drawer
+- save state and one two-professor comparison
+- dark/light theme
+- desktop and mobile viewport
+- no missing-font or missing-avatar requests in the browser network/console
+- reduced-motion behavior
