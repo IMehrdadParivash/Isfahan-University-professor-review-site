@@ -8,6 +8,7 @@ on:
       - 'assets/**'
       - 'tools/**'
       - 'V16_QA.md'
+      - 'V16_FONT_QA.md'
       - 'CLOUDFLARE_PAGES.md'
       - '_headers'
       - '.github/workflows/v16-release-gate.yml'
@@ -62,6 +63,25 @@ jobs:
 
           print('Static/offline sanity checks passed.')
 
+      - name: Check release tooling syntax
+        run: |
+          python -m py_compile tools/install-v16-fonts.py tools/verify-v16-assets.py tools/stage-v16-release.py
+          python tools/install-v16-fonts.py --help >/dev/null
+          python tools/verify-v16-assets.py --help >/dev/null
+          python tools/stage-v16-release.py --help >/dev/null
+
+      - name: Upload source runtime bundle for staged-release QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: v16-source-runtime
+          path: |
+            index.html
+            _headers
+            assets/**
+            tools/**
+          if-no-files-found: error
+          retention-days: 7
+
   browser-smoke:
     name: Browser smoke — direct file mode
     runs-on: ubuntu-latest
@@ -83,10 +103,10 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-  licensed-assets:
-    name: V16 asset verification
+  source-assets:
+    name: Source asset verification — license-safe
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Verify required files and licensed font hashes
-        run: python tools/verify-v16-assets.py
+      - name: Verify source assets and any repository fonts
+        run: python tools/verify-v16-assets.py --allow-missing-fonts
