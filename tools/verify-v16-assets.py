@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Verify V16 local release assets without requiring a build step."""
+"""Verify V16 source or staged release assets without a build step.
+
+Strict mode (default) requires every licensed WOFF2 binary. Source-repository CI
+may use --allow-missing-fonts when proprietary fonts are intentionally kept out
+of git; any font that *is* present is still verified byte-for-byte.
+"""
 from __future__ import annotations
 
 import argparse
@@ -36,13 +41,7 @@ AVATAR_FILES = [
     "assets/avatar/avatar-motion.js",
 ]
 
-REQUIRED_FILES = [
-    "index.html",
-    "assets/css/fonts.css",
-    "assets/js/app.js",
-    *AVATAR_FILES,
-]
-
+REQUIRED_FILES = ["index.html", "assets/css/fonts.css", "assets/js/app.js", *AVATAR_FILES]
 for i in range(1, 9):
     REQUIRED_FILES.append(f"assets/js/data-{i:02d}.js")
 for i in range(9, 14):
@@ -62,18 +61,20 @@ def sha256(path: Path) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=Path, default=REPO_ROOT, help="Release root to verify")
     parser.add_argument(
-        "--root",
-        type=Path,
-        default=REPO_ROOT,
-        help="Release root to verify (default: repository root)",
+        "--allow-missing-fonts",
+        action="store_true",
+        help="Source-repo mode: missing font binaries are allowed, but any present binary must match the manifest",
     )
     return parser.parse_args()
 
 
 def main() -> int:
-    root = parse_args().root.resolve()
+    args = parse_args()
+    root = args.root.resolve()
     failures = 0
+    missing_fonts = 0
     print(f"V16 verification root: {root}")
     print("\nV16 required static files")
     for rel in REQUIRED_FILES:
@@ -86,14 +87,20 @@ def main() -> int:
     for rel, (expected_size, expected_hash) in FONT_FILES.items():
         p = root / rel
         if not p.is_file():
-            print(f"MISSING {rel}")
-            failures += 1
+            missing_fonts += 1
+            label = "SKIP" if args.allow_missing_fonts else "MISSING"
+            print(f"{label:7} {rel}")
+            if not args.allow_missing_fonts:
+                failures += 1
             continue
         size = p.stat().st_size
         digest = sha256(p)
         ok = size == expected_size and digest == expected_hash
         print(f"{'OK' if ok else 'FAIL':7} {rel}  bytes={size}  sha256={digest}")
         failures += 0 if ok else 1
+
+    if args.allow_missing_fonts and missing_fonts:
+        print(f"\nSource-repo mode: {missing_fonts} proprietary font file(s) intentionally absent; staged release verification remains strict.")
 
     if failures:
         print(f"\nV16 verification failed: {failures} item(s) need attention.")
