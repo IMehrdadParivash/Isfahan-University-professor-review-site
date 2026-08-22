@@ -1,25 +1,68 @@
-# Isfahan University Professor Review Site
+# Isfahan University Professor Review Site — V16
 
 Static Persian professor-review website for the University of Isfahan.
 
-## Cloudflare Pages
+## Current release
 
-No build step or backend is required.
+`main` contains **V16**: local typography architecture plus the Professor Scout avatar/motion system.
 
-- Framework preset: **None**
-- Build command: leave empty
-- Build output directory: `/`
+V16 remains fully static and can run directly from local files without a backend, database, API, CDN, Node.js runtime, Pages Functions or Workers.
 
-The same files can also be opened locally without a server.
+## V16 highlights
 
-## Architecture
+- Story-based Professor Scout loading sequence
+- Dedicated local avatar poses for idle, think, work, walk, search, success, compare and no-results states
+- Compact persistent Professor Scout helper with search/detail/save/compare reactions
+- `prefers-reduced-motion` support
+- Local professor data and filters/search/compare UI
+- Dark/light theme and mobile layout
+- Local typography roles:
+  - Ravi FaNum — UI/body
+  - Anjoman — headings/display
+  - Pinar VF FD — accents/numerics
+  - Kahroba VF FD — student-voice/editorial text
 
-- Static HTML/CSS/JavaScript
-- Professor data bundled locally and gzip-compressed
-- No required API, database, CDN, or server runtime
-- Story-based loading intro using the project avatar
-- Reduced-motion preference respected
+## Offline architecture
 
-## Fonts
+- Plain HTML/CSS/JavaScript
+- Relative local asset paths
+- Professor data bundled locally
+- No required network request at runtime
+- Direct `file://` browser smoke-tested in CI
 
-The supplied V15 archive references custom font files but does not include the actual `.woff2` files. This deployment therefore falls back to the local/system font stack rather than making an online font request.
+## Fonts and deployment
+
+The selected font packages include proprietary/commercial materials. V16 therefore keeps the exact font manifest and verification tooling in the repository without automatically publishing raw proprietary font binaries in public Git history.
+
+Two release paths are supported:
+
+1. **Staged Direct Upload — recommended when repository redistribution is not licensed**
+   - keep licensed font archives only on the deployment machine
+   - run `python tools/stage-v16-release.py`
+   - the script creates `.release/v16/`, installs only the eleven exact WOFF2 files, and verifies every file/hash
+   - upload the **contents of `.release/v16/`** to Cloudflare Pages
+
+2. **Git integration**
+   - use only when the applicable font license explicitly permits storing the WOFF2 files in the connected repository
+   - framework preset: **None**
+   - build command: empty
+   - output/root: repository root
+
+See [`CLOUDFLARE_PAGES.md`](CLOUDFLARE_PAGES.md), [`V16_QA.md`](V16_QA.md) and [`V16_FONT_QA.md`](V16_FONT_QA.md) for the exact release procedure.
+
+## Verification
+
+Source-safe verification:
+
+```bash
+python tools/verify-v16-assets.py --allow-missing-fonts
+```
+
+Strict staged-release verification:
+
+```bash
+python tools/stage-v16-release.py
+python tools/verify-v16-assets.py --root .release/v16
+```
+
+The release gate also exercises the site through a real `file://` URL in headless Chrome, including search, filters, sorting, professor details, saved state, comparison, theme switching, mobile overflow and reduced-motion behavior.
