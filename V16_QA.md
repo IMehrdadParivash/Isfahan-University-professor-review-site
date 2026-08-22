@@ -10,8 +10,9 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 - [x] V15 professor data remains split into local JavaScript files; no remote API is required.
 - [x] No CDN is required by V16.
 - [x] No backend/database/server is introduced by V16.
-- [x] Cloudflare Pages can serve the repository as static files with no build step.
+- [x] Cloudflare Pages can serve the staged release as static files with no runtime build.
 - [x] Automated GitHub Actions release gate is present at `.github/workflows/v16-release-gate.yml`.
+- [x] Source CI publishes a `v16-source-runtime` artifact so the exact PR runtime can be staged and verified outside Git history.
 
 ## Avatar / interaction QA
 
@@ -39,23 +40,24 @@ This checklist is for the `v16` branch before PR #1 is merged into `main`.
 - [x] Display/headings role → Anjoman Pro.
 - [x] Accent/numeric role → Pinar V3 Variable.
 - [x] Student-voice/editorial role → Kahroba Pro Variable.
-- [x] System-font fallback remains available if a binary is missing.
+- [x] System-font fallback remains available if a binary is absent from the source checkout.
 - [x] Source WOFF2 binaries supplied for V16 were byte-size/SHA-256 checked against the verification manifest.
-- [x] OpenType metadata was parsed for the selected binaries; the expected internal families, Persian digits and Persian/Arabic glyph coverage are present.
+- [x] OpenType metadata was parsed for the selected binaries; expected internal families, Persian digits and Persian/Arabic glyph coverage are present.
 - [x] Ravi weights verified as 400/500/600/700/950; CSS ExtraBlack declaration corrected to 950.
 - [x] Anjoman weights verified as 400/700/800/900.
 - [x] Pinar variable axes verified: `wght` 300–900 plus `DSTY` and `KSHD`.
 - [x] Kahroba variable axes verified: `wght` 100–900 plus `CNTR` and `wdth`.
 - [x] NoEn/Condensed/Italic variants supplied separately are intentionally not substituted for the release-manifest files.
 - [x] `V16_FONT_QA.md` records the exact selection and metadata validation without redistributing font binaries.
-- [x] `tools/install-v16-fonts.py` can install/verify the exact eleven files from the authorized local ZIP archives in one command.
-- [ ] All eleven WOFF2 binaries exist under `assets/fonts/` in the repository **only if the applicable font license permits repository distribution**.
-- [ ] Uploaded font sizes/hashes pass `python tools/verify-v16-assets.py` in the repository checkout.
-- [ ] Final browser visual check confirms Persian digits and heading/body weights render as intended with repository-served fonts.
+- [x] `tools/install-v16-fonts.py` supports deployment-only installation with `--dest-root`.
+- [x] `tools/verify-v16-assets.py` supports strict staged verification with `--root` and license-safe source verification with `--allow-missing-fonts`.
+- [x] The exact current `v16-source-runtime` artifact was combined locally with the eleven selected WOFF2 files and passed **strict** `tools/verify-v16-assets.py` verification: every runtime file, font byte size and SHA-256 matched.
+- [x] Staged font payload verified at 791,592 bytes across the eleven exact WOFF2 files.
+- [ ] Final production-browser visual check confirms Persian digits and heading/body weights after Cloudflare deployment.
 
 ## Automated browser smoke test
 
-GitHub Actions opens the site through a real `file://` URL in headless Chrome. This intentionally tests the no-server/offline execution path; Selenium is CI-only and is not a runtime dependency of the site.
+GitHub Actions opens the source site through a real `file://` URL in headless Chrome. This intentionally tests the no-server/offline execution path; Selenium is CI-only and is not a runtime dependency of the site.
 
 - [x] Open `index.html` directly from disk and confirm the page reaches the professor list.
 - [x] Search by professor name.
@@ -69,9 +71,14 @@ GitHub Actions opens the site through a real `file://` URL in headless Chrome. T
 - [x] Confirm the idle mascot footprint remains compact on mobile.
 - [x] Confirm reduced-motion behavior disables decorative mascot animation.
 - [x] Confirm Professor Scout uses repository-local pose assets at runtime.
-- [ ] After the repository-licensed WOFF2 binaries are committed, rerun the same browser smoke test with local fonts loaded and visually inspect typography.
-- [ ] Deploy the same release commit to Cloudflare Pages and repeat a short production smoke test.
+- [x] Source asset verification is green in license-safe mode; missing proprietary fonts are reported as intentionally absent rather than silently accepted.
+- [x] Release tooling syntax/help checks pass in CI.
+- [ ] Deploy the strict staged release to Cloudflare Pages and repeat the short production smoke test with the real fonts served.
+
+## Selected release strategy
+
+Use the staged Direct Upload path documented in `CLOUDFLARE_PAGES.md` unless the applicable font license explicitly permits repository redistribution. This keeps proprietary font binaries out of public Git history while preserving exact local/offline font assets in the deployment artifact.
 
 ## Merge policy
 
-Keep PR #1 in draft while any required font binary or blocking smoke-test item remains incomplete. `main` stays on stable V15 until this checklist passes.
+PR #1 may move out of draft when all source/runtime browser gates are green and the exact staged runtime has passed strict asset/font verification. The remaining production-browser typography check is performed on the deployed staged artifact. `main` must never contain unverified or accidentally substituted font binaries.
