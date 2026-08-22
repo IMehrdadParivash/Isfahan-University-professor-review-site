@@ -1,0 +1,10 @@
+# Local licensed source archives used by tools/install-v16-fonts.py
+/vendor-fonts/
+/Ravi-Pro.zip
+/Anjoman Pro.zip
+/Pinar-V3 [@FontiranIR].zip
+/Kahroba-Pro.zip
+
+# Local QA/temp output
+*.tmp
+.DS_Store
