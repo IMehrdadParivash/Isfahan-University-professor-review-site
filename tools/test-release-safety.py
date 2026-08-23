@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial regression checks for V17 static publication and staging."""
+"""Adversarial regression checks for V18 static publication and staging."""
 from __future__ import annotations
 
 import hashlib
@@ -25,18 +25,12 @@ def require(condition: bool, message: str) -> None:
 
 def invoke(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, str(STAGER), *args],
-        cwd=ROOT,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
+        [sys.executable, str(STAGER), *args], cwd=ROOT, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False,
     )
 
 
 def remove_fixture_link(path: Path) -> None:
-    # Path.exists() is false for dangling symlinks; is_symlink() is essential
-    # after TemporaryDirectory removes their /tmp target.
     if path.is_symlink():
         path.unlink()
     elif path.exists():
@@ -45,14 +39,14 @@ def remove_fixture_link(path: Path) -> None:
 
 def main() -> int:
     RELEASE.mkdir(exist_ok=True)
-    # Unique fixture names avoid collisions if local and CI checks overlap.
     source_link = ROOT / "assets" / f"_release-safety-private-link-{os.getpid()}"
     output_link = RELEASE / f"_release-safety-output-link-{os.getpid()}"
     remove_fixture_link(ROOT / "assets" / "_release-safety-private-link")
     remove_fixture_link(RELEASE / "_release-safety-output-link")
     remove_fixture_link(source_link)
     remove_fixture_link(output_link)
-    with tempfile.TemporaryDirectory(prefix="ui-v17-release-safety-") as temp:
+
+    with tempfile.TemporaryDirectory(prefix="ui-v18-release-safety-") as temp:
         external = Path(temp) / "external"
         external.mkdir()
         sentinel = external / "must-survive.txt"
@@ -86,26 +80,22 @@ def main() -> int:
 
         staged_files = {path.relative_to(output).as_posix() for path in output.rglob("*") if path.is_file()}
         required = {
-            "index.html",
-            "_headers",
-            "robots.txt",
-            "favicon.svg",
+            "index.html", "_headers", "robots.txt", "favicon.svg",
             "assets/data/dataset-manifest.json",
-            "assets/js/app.js",
-            "assets/js/loader.js",
+            "assets/js/app.js", "assets/js/community-notes.js", "assets/js/loader.js",
             "assets/css/app.css",
-            "assets/fonts/Vazirmatn-Regular.woff2",
-            "assets/fonts/Vazirmatn-Bold.woff2",
-            "assets/fonts/OFL.txt",
+            "assets/fonts/Vazirmatn-Regular.woff2", "assets/fonts/Vazirmatn-Bold.woff2", "assets/fonts/OFL.txt",
         }
         require(required <= staged_files, f"required staged runtime files missing: {sorted(required - staged_files)}")
         require(not any(path.startswith(("tools/", ".github/", "vendor-fonts/")) for path in staged_files), "development/private files entered release")
         require(not any(Path(path).name.startswith(PROPRIETARY) for path in staged_files), "commercial fonts entered default public release")
+
         dataset_scripts = {path for path in staged_files if path.startswith("assets/data/") and path.endswith(".js")}
         expected_dataset = {f"assets/data/professors-{index:02}.js" for index in range(1, 7)}
         require(dataset_scripts == expected_dataset, f"unexpected public dataset copies: {sorted(dataset_scripts)}")
         require(not any(path.startswith("assets/js/data") for path in staged_files), "inactive archived data chunks entered release")
         require(not any(path.endswith("README.md") for path in staged_files), "documentation unexpectedly entered staged release")
+
         active_loader_poses = {"pose-walk.webp", "pose-think.webp", "pose-work.webp", "pose-success.webp"}
         staged_poses = {Path(path).name for path in staged_files if path.startswith("assets/avatar/pose-")}
         require(staged_poses == active_loader_poses, f"staged avatar files differ from actual loading-story poses: {sorted(staged_poses)}")
@@ -114,16 +104,16 @@ def main() -> int:
         chunk_hashes = manifest["sha256"]["public_data_chunks"]
         require(set(chunk_hashes) == expected_dataset, "manifest contains stale dataset aliases")
         for relative, expected in chunk_hashes.items():
-            staged_chunk = output / relative
-            actual = hashlib.sha256(staged_chunk.read_bytes()).hexdigest()
+            actual = hashlib.sha256((output / relative).read_bytes()).hexdigest()
             require(actual == expected, f"staged chunk hash mismatch: {relative}")
 
+        runtime = manifest["integrity"]["public_runtime_git_blobs"]
+        expected_runtime = {"assets/js/app.js", "assets/js/community-notes.js", "assets/js/loader.js"}
+        require(set(runtime) == expected_runtime, "manifest runtime allowlist is stale")
+
         result = subprocess.run(
-            [sys.executable, str(VERIFIER), "--root", str(output)],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
+            [sys.executable, str(VERIFIER), "--root", str(output)], cwd=ROOT,
+            capture_output=True, text=True, check=False,
         )
         require(result.returncode == 0, "independent staged verification failed:\n" + result.stdout + result.stderr)
 
@@ -132,18 +122,27 @@ def main() -> int:
         tamper_target.write_bytes(original + b"\n// tamper regression probe\n")
         try:
             result = subprocess.run(
-                [sys.executable, str(VERIFIER), "--root", str(output)],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
+                [sys.executable, str(VERIFIER), "--root", str(output)], cwd=ROOT,
+                capture_output=True, text=True, check=False,
             )
-            require(result.returncode != 0, "verifier accepted tampered public executable")
+            require(result.returncode != 0, "verifier accepted tampered public data")
         finally:
             tamper_target.write_bytes(original)
+
+        runtime_target = output / "assets/js/community-notes.js"
+        original_runtime = runtime_target.read_bytes()
+        runtime_target.write_bytes(original_runtime + b"\n// runtime tamper probe\n")
+        try:
+            result = subprocess.run(
+                [sys.executable, str(VERIFIER), "--root", str(output)], cwd=ROOT,
+                capture_output=True, text=True, check=False,
+            )
+            require(result.returncode != 0, "verifier accepted tampered qualitative runtime")
+        finally:
+            runtime_target.write_bytes(original_runtime)
             shutil.rmtree(output)
 
-    print("V17 adversarial release safety checks passed: traversal, deletion, symlinks, allowlist, licensing and actual hashes.")
+    print("V18 adversarial release safety checks passed: traversal, deletion, symlinks, allowlist, licensing and integrity metadata.")
     return 0
 
 
@@ -151,5 +150,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as exc:
-        print(f"V17 release safety check failed: {exc}", file=sys.stderr)
+        print(f"V18 release safety check failed: {exc}", file=sys.stderr)
         raise
