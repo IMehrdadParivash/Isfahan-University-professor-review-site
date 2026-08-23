@@ -30,7 +30,17 @@ def display_info(driver, element):
 
 def visibly_open(driver, element):
     state = display_info(driver, element)
-    return state["display"] != "none" and state["visibility"] != "hidden" and state["opacity"] > 0 and state["width"] > 0 and state["height"] > 0
+    return (
+        state["display"] != "none"
+        and state["visibility"] != "hidden"
+        and state["opacity"] > 0
+        and state["width"] > 0
+        and state["height"] > 0
+        and state["right"] > 0
+        and state["left"] < state["viewportWidth"]
+        and state["bottom"] > 0
+        and state["top"] < state["viewportHeight"]
+    )
 
 
 def main():
@@ -70,6 +80,7 @@ def main():
         drawer = driver.find_element(By.ID, "drawer")
         backdrop = driver.find_element(By.ID, "drawerBackdrop")
         wait.until(lambda browser: visibly_open(browser, drawer) and visibly_open(browser, backdrop))
+        wait.until(lambda browser: browser.find_element(By.ID, "drawerBody").text.strip())
         require(drawer.get_attribute("role") == "dialog" and drawer.get_attribute("aria-modal") == "true", "drawer lacks accessible dialog semantics")
         require(driver.execute_script("return document.activeElement.id") == "drawerClose", "drawer did not receive managed focus")
         require(display_info(driver, backdrop)["pointer"] != "none", "drawer backdrop is not clickable")

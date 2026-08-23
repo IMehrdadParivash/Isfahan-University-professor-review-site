@@ -27,7 +27,8 @@ def visible_style(driver: webdriver.Chrome, element) -> dict:
     return driver.execute_script(
         "const e=arguments[0],s=getComputedStyle(e),r=e.getBoundingClientRect();"
         "return {display:s.display,visibility:s.visibility,opacity:Number(s.opacity),"
-        "pointerEvents:s.pointerEvents,width:r.width,height:r.height};",
+        "pointerEvents:s.pointerEvents,width:r.width,height:r.height,left:r.left,right:r.right,"
+        "top:r.top,bottom:r.bottom,viewportWidth:innerWidth,viewportHeight:innerHeight};",
         element,
     )
 
@@ -40,6 +41,10 @@ def really_visible(driver: webdriver.Chrome, element) -> bool:
         and style["opacity"] > 0
         and style["width"] > 0
         and style["height"] > 0
+        and style["right"] > 0
+        and style["left"] < style["viewportWidth"]
+        and style["bottom"] > 0
+        and style["top"] < style["viewportHeight"]
     )
 
 
@@ -136,7 +141,8 @@ def main() -> int:
         drawer = driver.find_element(By.ID, "drawer")
         wait.until(lambda browser: really_visible(browser, drawer))
         require(drawer.get_attribute("aria-modal") == "true", "professor drawer is not aria-modal")
-        require(driver.find_element(By.ID, "drawerBody").text.strip(), "professor drawer opened without content")
+        wait.until(lambda browser: browser.find_element(By.ID, "drawerBody").text.strip())
+        require(driver.find_element(By.ID, "drawerBody").text.strip(), "professor drawer opened without visible content")
         backdrop = driver.find_element(By.ID, "drawerBackdrop")
         wait.until(lambda browser: really_visible(browser, backdrop))
         require(visible_style(driver, backdrop)["pointerEvents"] != "none", "professor backdrop is not interactive")
