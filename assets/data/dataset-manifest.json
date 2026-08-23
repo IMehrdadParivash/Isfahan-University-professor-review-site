@@ -53,7 +53,7 @@
   "integrity": {
     "public_runtime_git_blobs": {
       "assets/js/app.js": "6ef96f76ec6ba0c554eb0c4783fa9f7f7419b052",
-      "assets/js/community-notes.js": "2c56edf2acbcc9ef2709e20dbd93879aa8dcdeca",
+      "assets/js/community-notes.js": "f6abb7081877dc82687deb177cb8f3651f493391",
       "assets/js/loader.js": "30b734b8dcdf8950a4d63d8f01dbef1e5223dc6e"
     }
   }
