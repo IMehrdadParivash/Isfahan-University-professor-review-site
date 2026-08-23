@@ -122,6 +122,11 @@ def main():
         opener = driver.find_element(By.CSS_SELECTOR, "#cards [data-open-id]")
         driver.execute_script("arguments[0].click()", opener)
         wait.until(lambda browser: visibly_open(browser, drawer))
+        wait.until(lambda browser: (
+            lambda state: state["left"] >= -1
+            and state["right"] <= state["viewportWidth"] + 1
+            and state["width"] <= state["viewportWidth"] + 1
+        )(display_info(browser, drawer)))
         rect = display_info(driver, drawer)
         require(rect["left"] >= -1 and rect["right"] <= rect["viewportWidth"] + 1, f"mobile professor drawer extends beyond viewport: {rect}")
         overflow = driver.execute_script("return document.documentElement.scrollWidth-document.documentElement.clientWidth")
