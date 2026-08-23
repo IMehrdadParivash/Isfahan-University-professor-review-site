@@ -16,8 +16,10 @@ assert(!html.includes('id="course"'), 'course filter returned to public UI');
 assert(!html.includes('id="compareModal"'), 'professor-by-course comparison returned to public UI');
 assert(!html.includes('precisionFilters'), 'advanced evidence filters returned to public UI');
 assert(html.includes('امتیاز کلی'), 'professor-level rating copy is missing');
-assert(app.includes('function professorRating(professor)'), 'professor-level rating aggregation is missing');
-assert(app.includes('report-count') || app.includes('structured_report_count'), 'rating aggregation no longer uses structured report weights');
+assert(app.includes('function professorStats(professor)'), 'professor-level aggregation is missing');
+assert(app.includes('const professorRating = professor => professorStats(professor).score'), 'professor score accessor is missing');
+assert(app.includes('const reports = professor => professorStats(professor).sampleSize'), 'displayed review count is not tied to score-contributing evidence');
+assert(!app.includes('...professor.courses.map(course => course.course)'), 'course names still influence public professor search');
 assert(!app.includes('data-compare-id'), 'comparison controls still exist in app runtime');
 assert(!app.includes('matchingCourses('), 'public runtime still contains course matching logic');
 
@@ -44,30 +46,32 @@ assert.equal(new Set(pack.p.map(row => row[4]).filter(Boolean)).size, 61, 'depar
 function validScore(value) {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 5;
 }
-function professorRating(row) {
+function professorStats(row) {
   let total = 0;
-  let weight = 0;
+  let sampleSize = 0;
   for (const course of row[7]) {
     const count = Number(course[1]) || 0;
     const score = course[2];
     if (count > 0 && validScore(score)) {
       total += score * count;
-      weight += count;
+      sampleSize += count;
     }
   }
-  return weight ? total / weight : null;
+  return { score: sampleSize ? total / sampleSize : null, sampleSize };
 }
 
-const ratings = pack.p.map(professorRating).filter(value => value !== null);
+const stats = pack.p.map(professorStats);
+const ratings = stats.map(value => value.score).filter(value => value !== null);
 assert(ratings.length > 0 && ratings.length < 743, 'professor score coverage is implausible');
 assert(ratings.every(validScore), 'professor-level aggregation produced a score outside 0–5');
-const withThree = pack.p.filter(row => Number(row[6][1]) >= 3).length;
-assert(withThree > 0, 'no professors have three or more structured reviews');
+assert(stats.every(value => Number.isInteger(value.sampleSize) && value.sampleSize >= 0), 'score-contributing review count is invalid');
+const withThree = stats.filter(value => value.sampleSize >= 3).length;
+assert(withThree > 0, 'no professors have three or more score-contributing reviews');
 
 console.log(JSON.stringify({
-  passed: 17,
+  passed: 20,
   professors: pack.p.length,
   ratedProfessors: ratings.length,
-  professorsWithThreeStructuredReviews: withThree,
+  professorsWithThreeScoreContributingReviews: withThree,
   runtimeScripts: scripts,
 }, null, 2));
