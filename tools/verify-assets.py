@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the complete local runtime, public hashes and redistributable fonts."""
+"""Verify the complete local runtime, public data hashes and redistributable fonts."""
 from __future__ import annotations
 
 import argparse
@@ -41,6 +41,11 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def git_blob_sha1(path: Path) -> str:
+    data = path.read_bytes()
+    return hashlib.sha1(f"blob {len(data)}\0".encode() + data).hexdigest()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="Static website root to verify")
@@ -60,11 +65,12 @@ def local_html_references(root: Path) -> list[str]:
     return sorted(references)
 
 
-def verify_public_hashes(root: Path) -> int:
+def verify_public_integrity(root: Path) -> int:
     manifest_path = root / "assets/data/dataset-manifest.json"
     if not manifest_path.is_file():
         return 1
-    hashes = json.loads(manifest_path.read_text(encoding="utf-8")).get("sha256", {})
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    hashes = manifest.get("sha256", {})
     chunk_hashes = hashes.get("public_data_chunks", {})
     if not isinstance(chunk_hashes, dict) or not chunk_hashes:
         print("FAIL    manifest.sha256.public_data_chunks must contain real executable hashes")
@@ -106,16 +112,17 @@ def verify_public_hashes(root: Path) -> int:
             if len(matches) == 1:
                 parts.append(matches[0])
 
-    runtime_hashes = hashes.get("public_runtime_files", {})
+    runtime_entries = manifest.get("integrity", {}).get("public_runtime_git_blobs", {})
     actual_runtime = set(re.findall(r'<script\b[^>]*\bsrc=["\'](assets/[^"\']+\.js)["\']', html, flags=re.I)) - set(referenced_chunks)
-    if set(runtime_hashes) != actual_runtime:
-        print("FAIL    manifest executable list does not exactly match index.html runtime scripts")
+    if not isinstance(runtime_entries, dict) or set(runtime_entries) != actual_runtime:
+        print("FAIL    manifest runtime integrity list does not exactly match index.html runtime scripts")
         failures += 1
-    for rel, expected in runtime_hashes.items():
-        path = root / rel
-        if not path.is_file() or path.is_symlink() or sha256(path) != expected:
-            print(f"FAIL    manifest SHA-256 mismatch: executable {rel}")
-            failures += 1
+    else:
+        for rel, expected in runtime_entries.items():
+            path = root / rel
+            if not path.is_file() or path.is_symlink() or git_blob_sha1(path) != expected:
+                print(f"FAIL    manifest runtime Git blob mismatch: {rel}")
+                failures += 1
 
     if failures:
         return failures
@@ -154,10 +161,7 @@ def main() -> int:
         failures += 0 if ok else 1
 
     print("\nOfficial, redistributable Vazirmatn fonts")
-    actual_fonts = {
-        path.relative_to(root).as_posix()
-        for path in (root / "assets/fonts").glob("*.woff2")
-    }
+    actual_fonts = {path.relative_to(root).as_posix() for path in (root / "assets/fonts").glob("*.woff2")}
     if actual_fonts != set(FONT_FILES):
         print(f"FAIL    unexpected or missing public font files: {sorted(actual_fonts ^ set(FONT_FILES))}")
         failures += 1
@@ -178,8 +182,8 @@ def main() -> int:
         print("FAIL    complete SIL Open Font License is missing")
         failures += 1
 
-    print("\nPublic dataset cryptographic integrity")
-    failures += verify_public_hashes(root)
+    print("\nPublic dataset and runtime integrity")
+    failures += verify_public_integrity(root)
 
     if failures:
         print(f"\nWebsite verification failed: {failures} item(s) need attention.")
