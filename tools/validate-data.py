@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed on privacy, provenance and integrity errors in public V17 data."""
+"""Fail closed on privacy, provenance and integrity errors in public V18 data."""
 from __future__ import annotations
 
 import base64
@@ -38,6 +38,11 @@ def fail(message: str) -> None:
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def git_blob_sha1(data: bytes) -> str:
+    header = f"blob {len(data)}\0".encode()
+    return hashlib.sha1(header + data).hexdigest()
 
 
 def canonical_bytes(value: object) -> bytes:
@@ -118,15 +123,24 @@ def validate_hashes(pack: dict, raw: bytes, compressed: bytes, scripts: list[str
     for key, actual in expected.items():
         if hashes.get(key) != actual:
             fail(f"manifest sha256.{key} does not match actual public bytes")
-    for key, paths in (("public_data_chunks", public_chunk_files(scripts)),
-                       ("public_runtime_files", runtime_references())):
-        entries = hashes.get(key)
-        if not isinstance(entries, dict) or set(entries) != set(paths):
-            fail(f"manifest sha256.{key} does not cover exactly the current public files")
-        for relative, digest in entries.items():
-            candidate = ROOT / relative
-            if not candidate.is_file() or candidate.is_symlink() or sha256(candidate.read_bytes()) != digest:
-                fail(f"manifest sha256 mismatch for executable/data file: {relative}")
+
+    chunk_entries = hashes.get("public_data_chunks")
+    chunk_paths = public_chunk_files(scripts)
+    if not isinstance(chunk_entries, dict) or set(chunk_entries) != set(chunk_paths):
+        fail("manifest sha256.public_data_chunks does not cover exactly the current public data files")
+    for relative, digest in chunk_entries.items():
+        candidate = ROOT / relative
+        if not candidate.is_file() or candidate.is_symlink() or sha256(candidate.read_bytes()) != digest:
+            fail(f"manifest sha256 mismatch for executable/data file: {relative}")
+
+    runtime_entries = manifest.get("integrity", {}).get("public_runtime_git_blobs")
+    runtime_paths = runtime_references()
+    if not isinstance(runtime_entries, dict) or set(runtime_entries) != set(runtime_paths):
+        fail("manifest runtime integrity list does not cover exactly the current executable files")
+    for relative, digest in runtime_entries.items():
+        candidate = ROOT / relative
+        if not candidate.is_file() or candidate.is_symlink() or git_blob_sha1(candidate.read_bytes()) != digest:
+            fail(f"manifest runtime git blob mismatch: {relative}")
 
 
 def in_scale(value: object) -> bool:
@@ -176,19 +190,26 @@ def main() -> int:
             fail(f"embedded and manifest statistics must both contain {key}={expected}")
     if tuple(pack.get("dims", ())) != DIMENSIONS:
         fail("public schema does not contain exactly the six documented teaching dimensions")
+
     methodology = manifest.get("methodology", {})
     if (manifest.get("canonical_professor_count") != 743 or methodology.get("normalized_scale") != "0–5"
             or methodology.get("numeric_display_minimum_reports") != 2):
         fail("official roster count, score scale, or minimum privacy threshold changed")
-    for key in ("global_professor_score", "legacy_bayesian_score_used",
-                "historical_or_unresolved_in_main_professor_list"):
+    if methodology.get("underlying_evidence_grain") != "professor × course" or methodology.get("public_score_grain") != "professor":
+        fail("manifest must distinguish internal professor-course evidence from public professor-level scoring")
+    if methodology.get("public_professor_score") is not True:
+        fail("methodology.public_professor_score must be enabled for the V18 public UI")
+    if methodology.get("qualitative_summaries_affect_numeric_score") is not False:
+        fail("qualitative summaries must not affect numeric professor ratings")
+    for key in ("legacy_bayesian_score_used", "historical_or_unresolved_in_main_professor_list"):
         if methodology.get(key) is not False:
             fail(f"methodology.{key} must remain disabled")
+
     privacy = manifest.get("privacy", {})
-    for key in ("student_personal_identifiers_in_frontend", "raw_chat_text_in_frontend"):
+    for key in ("student_personal_identifiers_in_frontend", "raw_chat_text_in_frontend", "student_usernames_in_frontend"):
         if privacy.get(key) is not False:
             fail(f"privacy.{key} must remain false")
-    for key in ("singleton_scores_removed_before_publication", "singleton_exact_dates_removed_before_publication"):
+    for key in ("qualitative_summaries_anonymized", "singleton_scores_removed_before_publication", "singleton_exact_dates_removed_before_publication"):
         if privacy.get(key) is not True:
             fail(f"privacy.{key} must be true")
 
@@ -275,11 +296,11 @@ def main() -> int:
         if actual != EXPECTED[key]:
             fail(f"recomputed {key}={actual}; expected {EXPECTED[key]}")
     print(
-        "V17 public privacy and integrity checks passed: "
-        f"743 professors, 17 faculties, 64 units, 61 labels, {pairs} course pairs, {rankable} comparable pairs; "
+        "V18 public privacy and integrity checks passed: "
+        f"743 professors, 17 faculties, 64 units, 61 labels, {pairs} internal course-evidence pairs; "
         f"{hidden_overall} singleton overall scores, {hidden_dimensions} under-threshold dimension scores, "
         f"and {hidden_dates} singleton dates withheld; "
-        f"{len(public_chunk_files(scripts))} chunks and {len(runtime_references())} executable scripts hash-verified."
+        f"{len(public_chunk_files(scripts))} data chunks SHA-256 verified and {len(runtime_references())} runtime Git blobs verified."
     )
     return 0
 
@@ -288,5 +309,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as exc:
-        print(f"V17 public data integrity check failed: {exc}", file=sys.stderr)
+        print(f"V18 public data integrity check failed: {exc}", file=sys.stderr)
         raise
