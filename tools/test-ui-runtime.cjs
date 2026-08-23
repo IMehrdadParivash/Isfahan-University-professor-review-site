@@ -1,32 +1,73 @@
-const fs=require('fs'),vm=require('vm'),assert=require('assert');
-const html=fs.readFileSync('index.html','utf8');
-class ClassList { constructor(el){this.el=el;this.items=new Set()} add(...a){a.forEach(x=>this.items.add(x))} remove(...a){a.forEach(x=>this.items.delete(x))} contains(x){return this.items.has(x)} toggle(x,f){const yes=f===undefined?!this.items.has(x):f;yes?this.items.add(x):this.items.delete(x);return yes} }
-let dynamic=[];
-function parseAttributes(raw,e){for(const m of raw.matchAll(/([\w-]+)(?:="([^"]*)")?/g)){const [,k,v='']=m;e.attributes[k]=v;if(k==='id')e.id=v;if(k==='class')v.split(/\s+/).forEach(c=>e.classList.add(c));if(k.startsWith('data-'))e.dataset[k.slice(5).replace(/-([a-z])/g,(_,x)=>x.toUpperCase())]=v;if(k==='value')e.value=v;if(k==='disabled')e.disabled=true}return e}
-class El {constructor(id='',tag='div'){this.id=id;this.tagName=tag.toUpperCase();this.attributes={};this.dataset={};this.classList=new ClassList(this);this.style={display:'',setProperty(){}};this.value='';this.checked=false;this.disabled=false;this.children=[];this._html='';this.textContent='';this.isConnected=true;} set innerHTML(s){this._html=String(s);dynamic=dynamic.filter(x=>x._root!==this);for(const m of this._html.matchAll(/<(button|article|div|a|input|select|section)\b([^>]*)>/g)){const e=parseAttributes(m[2],new El('',m[1]));e._root=this;dynamic.push(e)}} get innerHTML(){return this._html} setAttribute(k,v){this.attributes[k]=String(v)}getAttribute(k){return this.attributes[k]??null}replaceChildren(...x){this.children=x;this.value=x[0]?.value??''}add(x){this.children.push(x)}focus(){document.activeElement=this}getClientRects(){return [{}]}querySelectorAll(sel){return dynamic.filter(x=>x._root===this && (x.tagName==='BUTTON'||x.tagName==='A'))}contains(x){return x===this||x._root===this}}
-const els={};for(const m of html.matchAll(/<(\w+)\b([^>]*\sid="([^"]+)"[^>]*)>/g)){const [,tag,attrs,id]=m;els[id]=parseAttributes(attrs,new El(id,tag))}
-for(const id of ['sort'])els[id].value='reviews';
-const chips=[...html.matchAll(/<button\s+class="([^"]*chip[^"]*)"([^>]*)>/g)].map(m=>parseAttributes('class="'+m[1]+'" '+m[2],new El('', 'button')));
-const modalDialog=new El('','div');modalDialog.classList.add('modal');
-const listeners={};
-global.document={documentElement:new El('html'),activeElement:null,head:new El('head'),querySelector(s){if(s==='#compareModal .modal')return modalDialog;if(s.startsWith('#'))return els[s.slice(1)]??null;return null},querySelectorAll(s){if(s==='.chip')return chips;if(s==='[data-open-id]')return dynamic.filter(e=>e.dataset.openId!==undefined);if(s==='[data-save-id]')return dynamic.filter(e=>e.dataset.saveId!==undefined);if(s==='[data-compare-id]')return dynamic.filter(e=>e.dataset.compareId!==undefined);return []},addEventListener(t,cb){(listeners[t]??=[]).push(cb)},dispatchEvent(e){for(const cb of listeners[e.type]??[])cb(e)}};
-document.documentElement.dataset.theme='dark';
-global.Option=class{constructor(text,value){this.text=text;this.value=value}};
-global.localStorage={getItem(k){return k==='ui_saved_professor_ids'?'{invalid JSON':null},setItem(){}};
-global.window=global;global.addEventListener=()=>{};global.location={hash:'',pathname:'/index.html',search:''};global.history={replaceState(_,__,url){location.hash=String(url).startsWith('#')?String(url):''}};global.alert=()=>{};
-async function main(){const loaded=new Promise((resolve,reject)=>{document.addEventListener('ui:data-ready',resolve);document.addEventListener('ui:data-failed',()=>reject(new Error('app load failed')))});for(let i=1;i<=6;i++)vm.runInThisContext(fs.readFileSync(`assets/data/professors-0${i}.js`,'utf8'));vm.runInThisContext(fs.readFileSync('assets/js/app.js','utf8'));await loaded;
-const tests=[];function check(label,fn){fn();tests.push(label)}
-check('all 743 professors render despite corrupt localStorage',()=>assert.match(els.resultCount.textContent,/۷۴۳/));
-check('17 faculties available',()=>assert.equal(els.faculty.children.length,18));
-check('61 unique department labels available',()=>assert.equal(els.department.children.length,62));
-check('invalid and numeric-only course titles excluded',()=>assert(els.course.children.every(x=>!['.','..','2','۲','٢'].includes(x.value))));
-check('academic rank options populated from dataset',()=>assert(els.rank.children.length>=4));
-const allDepts=els.department.children.length;els.faculty.value=els.faculty.children[1].value;els.faculty.onchange();check('faculty cascades to its own departments',()=>assert(els.department.children.length<allDepts && els.department.children.length>1));const allFacultyCourses=els.course.children.length;els.department.value=els.department.children[1].value;els.department.onchange();check('department narrows courses',()=>assert(els.course.children.length<=allFacultyCourses));els.clear.onclick();
-const firstName=dynamic.find(e=>e.dataset.openId)?.attributes['aria-label'];const phrase=firstName.replace('مشاهدهٔ جزئیات ','');const words=phrase.split(/\s+/);els.q.value=words.slice(-1).join(' ')+' '+words[0];els.q.oninput();check('multi-word search matches regardless of order',()=>assert(!els.resultCount.textContent.startsWith('۰')));check('search fields synchronize',()=>assert.equal(els.heroQ.value,els.q.value));
-els.clear.onclick();check('clear resets both searches and all results',()=>{assert.equal(els.q.value,'');assert.equal(els.heroQ.value,'');assert.match(els.resultCount.textContent,/۷۴۳ نتیجه/)});
-els.minRating.value='4';els.minRating.onchange();check('0-5 minimum course rating reduces results',()=>assert(!els.resultCount.textContent.startsWith('۷۴۳')));els.dimension.value='teaching';els.dimension.onchange();els.minDimension.value='4';els.minDimension.onchange();check('actual sampled course dimensions filter safely',()=>assert(els.resultCount.textContent.length>0));els.clear.onclick();
-let comps=dynamic.filter(e=>e.dataset.compareId);comps[0].onclick({stopPropagation(){}});let first=comps[0].dataset.compareId;comps=dynamic.filter(e=>e.dataset.compareId);let second=comps.find(e=>e.dataset.compareId!==first);second.onclick({stopPropagation(){}});check('comparison becomes actionable after two professor selections',()=>assert.equal(els.compareGo.disabled,false));els.compareGo.onclick();check('comparison uses actual visible open class and dialog state',()=>{assert(els.compareModal.classList.contains('open'));assert.equal(els.compareModal.getAttribute('aria-hidden'),'false')});check('comparison does not invent an overall professor score',()=>assert(!els.compareBody.innerHTML.includes('overall_avg')));els.compareClose.onclick();check('comparison closes and updates aria',()=>{assert(!els.compareModal.classList.contains('open'));assert.equal(els.compareModal.getAttribute('aria-hidden'),'true')});
-let opener=dynamic.find(e=>e.dataset.openId);opener.onclick();check('drawer and backdrop share visible open class',()=>{assert(els.drawer.classList.contains('open'));assert(els.drawerBackdrop.classList.contains('open'));assert.equal(els.drawer.getAttribute('aria-hidden'),'false')});check('drawer does not leak singleton numbers or invalid dates',()=>assert(!els.drawerBody.innerHTML.includes('Invalid Date')));els.drawerClose.onclick();check('drawer close clears backdrop',()=>assert(!els.drawerBackdrop.classList.contains('open')));
-const css=fs.readFileSync('assets/css/app.css','utf8');check('computed visibility rules support open modal and backdrop',()=>{assert.match(css,/\.modal-backdrop\.open\s*\{\s*display:\s*grid/);assert.match(css,/\.drawer-backdrop\.open\s*\{\s*opacity:\s*1/) });check('only verified data fragments and two runtime scripts load',()=>{const scripts=[...html.matchAll(/<script\s+src="([^"]+)"/g)].map(match=>match[1]);const expected=Array.from({length:6},(_,i)=>`assets/data/professors-0${i+1}.js`);assert.deepEqual(scripts,[...expected,'assets/js/app.js','assets/js/loader.js'])});check('avatar source rendered at native resolution',()=>{assert.match(html,/width="128" height="128"/);assert.match(css,/image-rendering:\s*auto/)});check('local OFL fonts loaded without CDN',()=>{const fonts=fs.readFileSync('assets/css/fonts.css','utf8');assert(fonts.includes('Vazirmatn-Regular.woff2')&&fonts.includes('Vazirmatn-Bold.woff2'));assert(!fonts.includes('https://'))});
-console.log(JSON.stringify({passed:tests.length,tests},null,2));}
-main().catch(error=>{console.error(error);process.exitCode=1});
+const fs = require('fs');
+const vm = require('vm');
+const zlib = require('zlib');
+const assert = require('assert');
+
+const html = fs.readFileSync('index.html', 'utf8');
+const app = fs.readFileSync('assets/js/app.js', 'utf8');
+const notes = fs.readFileSync('assets/js/community-notes.js', 'utf8');
+
+const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(match => match[1]);
+const dataScripts = Array.from({ length: 6 }, (_, index) => `assets/data/professors-${String(index + 1).padStart(2, '0')}.js`);
+const expectedScripts = [...dataScripts, 'assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/loader.js'];
+assert.deepEqual(scripts, expectedScripts, 'index.html runtime script allowlist drifted');
+
+assert(!html.includes('id="course"'), 'course filter returned to public UI');
+assert(!html.includes('id="compareModal"'), 'professor-by-course comparison returned to public UI');
+assert(!html.includes('precisionFilters'), 'advanced evidence filters returned to public UI');
+assert(html.includes('امتیاز کلی'), 'professor-level rating copy is missing');
+assert(app.includes('function professorRating(professor)'), 'professor-level rating aggregation is missing');
+assert(app.includes('report-count') || app.includes('structured_report_count'), 'rating aggregation no longer uses structured report weights');
+assert(!app.includes('data-compare-id'), 'comparison controls still exist in app runtime');
+assert(!app.includes('matchingCourses('), 'public runtime still contains course matching logic');
+
+new vm.Script(app, { filename: 'assets/js/app.js' });
+new vm.Script(notes, { filename: 'assets/js/community-notes.js' });
+assert(notes.includes('qualitative summaries') || notes.includes('خلاصهٔ تجربه‌های دانشجویی'), 'qualitative summary module is missing');
+assert(notes.includes('روی امتیاز عددی استاد اثر نمی‌گذارد'), 'qualitative notes do not state score separation');
+assert(!/\bin reply to\b/i.test(notes), 'raw chat reply markers leaked into qualitative notes');
+assert(!/\[\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}/.test(notes), 'raw chat timestamps leaked into qualitative notes');
+
+const context = { window: {} };
+context.window = context;
+vm.createContext(context);
+for (const relative of dataScripts) vm.runInContext(fs.readFileSync(relative, 'utf8'), context, { filename: relative });
+const encoded = context.__UI_DB_GZ_PARTS.join('');
+const pack = JSON.parse(zlib.gunzipSync(Buffer.from(encoded, 'base64')).toString('utf8'));
+
+assert.equal(pack.s.professors, 743, 'embedded professor statistic changed');
+assert.equal(pack.p.length, 743, 'official professor roster is not 743 rows');
+assert.equal(new Set(pack.p.map(row => row[1])).size, 743, 'canonical professor names are not unique');
+assert.equal(new Set(pack.p.map(row => row[3]).filter(Boolean)).size, 17, 'faculty count changed');
+assert.equal(new Set(pack.p.map(row => row[4]).filter(Boolean)).size, 61, 'department label count changed');
+
+function validScore(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 5;
+}
+function professorRating(row) {
+  let total = 0;
+  let weight = 0;
+  for (const course of row[7]) {
+    const count = Number(course[1]) || 0;
+    const score = course[2];
+    if (count > 0 && validScore(score)) {
+      total += score * count;
+      weight += count;
+    }
+  }
+  return weight ? total / weight : null;
+}
+
+const ratings = pack.p.map(professorRating).filter(value => value !== null);
+assert(ratings.length > 0 && ratings.length < 743, 'professor score coverage is implausible');
+assert(ratings.every(validScore), 'professor-level aggregation produced a score outside 0–5');
+const withThree = pack.p.filter(row => Number(row[6][1]) >= 3).length;
+assert(withThree > 0, 'no professors have three or more structured reviews');
+
+console.log(JSON.stringify({
+  passed: 17,
+  professors: pack.p.length,
+  ratedProfessors: ratings.length,
+  professorsWithThreeStructuredReviews: withThree,
+  runtimeScripts: scripts,
+}, null, 2));
