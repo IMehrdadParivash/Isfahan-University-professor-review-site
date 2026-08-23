@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial regression tests for privacy-safe, hash-verified public data."""
+"""Adversarial regression tests for privacy-safe, integrity-verified public V18 data."""
 from __future__ import annotations
 
 import contextlib
@@ -25,7 +25,7 @@ def import_from(path: Path, name: str):
 
 class PublicDataPrivacyRegression(unittest.TestCase):
     def setUp(self) -> None:
-        self.directory = tempfile.TemporaryDirectory(prefix="ui-v17-privacy-")
+        self.directory = tempfile.TemporaryDirectory(prefix="ui-v18-privacy-")
         self.root = Path(self.directory.name)
         shutil.copy2(ROOT / "index.html", self.root / "index.html")
         for folder in ("assets/js", "assets/data", "assets/avatar"):
@@ -33,8 +33,8 @@ class PublicDataPrivacyRegression(unittest.TestCase):
         (self.root / "tools").mkdir()
         for name in ("validate-data.py", "sanitize-data.py"):
             shutil.copy2(ROOT / "tools" / name, self.root / "tools" / name)
-        self.validator = import_from(self.root / "tools/validate-data.py", "v17_privacy_validator")
-        self.sanitizer = import_from(self.root / "tools/sanitize-data.py", "v17_privacy_sanitizer")
+        self.validator = import_from(self.root / "tools/validate-data.py", "v18_privacy_validator")
+        self.sanitizer = import_from(self.root / "tools/sanitize-data.py", "v18_privacy_sanitizer")
 
     def tearDown(self) -> None:
         self.directory.cleanup()
@@ -56,8 +56,7 @@ class PublicDataPrivacyRegression(unittest.TestCase):
 
     @staticmethod
     def nonrankable_multiple(pack: dict) -> list:
-        return next(course for professor in pack["p"] for course in professor[7]
-                    if course[1] >= 2 and not course[5])
+        return next(course for professor in pack["p"] for course in professor[7] if course[1] >= 2 and not course[5])
 
     def test_clean_public_data_passes(self) -> None:
         with contextlib.redirect_stdout(io.StringIO()):
@@ -138,7 +137,7 @@ class PublicDataPrivacyRegression(unittest.TestCase):
     def test_runtime_executable_tampering_is_rejected(self) -> None:
         path = self.root / self.validator.runtime_references()[0]
         path.write_text(path.read_text(encoding="utf-8") + "\n// tampered executable\n", encoding="utf-8")
-        self.assert_rejected("sha256 mismatch for executable/data file")
+        self.assert_rejected("runtime git blob mismatch")
 
     def test_manifest_database_hash_tampering_is_rejected(self) -> None:
         path = self.root / "assets/data/dataset-manifest.json"
@@ -149,9 +148,7 @@ class PublicDataPrivacyRegression(unittest.TestCase):
 
     def test_extra_untracked_public_payload_is_rejected(self) -> None:
         payload = self.validator.extract_chunk(self.root / self.validator.script_references()[0])
-        (self.root / "assets/js/data-hidden-unsafe.js").write_text(
-            f'window.privateData="{payload}";\n', encoding="utf-8"
-        )
+        (self.root / "assets/js/data-hidden-unsafe.js").write_text(f'window.privateData="{payload}";\n', encoding="utf-8")
         self.assert_rejected("untracked public data payload")
 
     def test_public_sanitizer_is_byte_for_byte_idempotent(self) -> None:
