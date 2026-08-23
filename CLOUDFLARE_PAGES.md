@@ -1,68 +1,43 @@
-# Cloudflare Pages deployment — V17
+# راهنمای انتشار روی Cloudflare Pages
 
-This is a static, offline-capable site. It requires no build system, Node.js runtime, API, database, Worker, Pages Function, paid Cloudflare service or runtime environment variables.
+این پروژه یک وب‌سایت کاملاً استاتیک است و به Worker، Pages Function، API، دیتابیس، سرویس پولی، متغیر محیطی یا وابستگی اجرایی خارجی نیاز ندارد.
 
-## Required privacy gate
-
-Do not deploy an older commit or cached bundle: earlier public files contained individual-response numeric values and exact individual-response dates. Run both gates before every deployment:
+## کنترل الزامی قبل از انتشار
 
 ```bash
-python tools/validate-v17-data.py
-python tools/verify-v16-assets.py --allow-missing-fonts
+python3 tools/validate-data.py
+python3 tools/verify-assets.py
 ```
 
-The validator checks the canonical 743-person roster, 17 faculties, 64 educational units, the 0–5 professor/course scale, suppression of all single-response scores and dates, and the hashes of the actual public runtime data.
+اعتبارسنج، فهرست ۷۴۳ استاد و ساختار ۱۷ دانشکده و ۶۴ واحد آموزشی، بازهٔ معتبر ۰ تا ۵، حذف امتیازها و تاریخ تک‌نفره و هش واقعی داده و فایل‌های اجرایی را کنترل می‌کند.
 
-## Option A: Git-integrated Pages
+## انتشار متصل به GitHub
 
-Recommended for the default **font-license-safe** release:
+در Cloudflare Pages مخزن موجود را با تنظیمات زیر متصل کنید:
 
-- Production branch: `main` after the reviewed privacy-fix pull request is merged.
-- Framework preset: **None**.
-- Build command: empty.
-- Build output/root directory: repository root.
-- Runtime environment variables: none.
+| تنظیم | مقدار |
+| --- | --- |
+| Production branch | `main` |
+| Framework preset | `None` |
+| Build command | `python3 tools/build-release.py` |
+| Build output directory | `.release/site` |
+| Environment variables | ندارد |
 
-Commercial webfont binaries are not part of the default repository release. The page bundles official Vazirmatn Regular/Bold under SIL OFL 1.1, includes the complete font license, retains local system-font fallbacks and never requires an external font CDN.
+فرمان ساخت ابتدا حریم خصوصی و صحت داده را کنترل می‌کند؛ سپس فقط فایل‌های واقعی سایت را به بستهٔ انتشار منتقل و صحت هش آن‌ها را دوباره بررسی می‌کند. برای انتشار ساده‌تر نیز می‌توان ریشهٔ مخزن را بدون build منتشر کرد؛ بستهٔ `.release/site` انتخاب تمیزتر است، زیرا ابزار آزمون و مستندات را منتشر نمی‌کند.
 
-## Option B: Direct upload of a staged runtime
-
-Create an allowlisted, verified runtime directory:
+## بارگذاری مستقیم
 
 ```bash
-python tools/stage-v16-release.py
-python tools/verify-v16-assets.py --root .release/v17 --allow-missing-fonts
+python3 tools/build-release.py
+python3 tools/verify-assets.py --root .release/site
 ```
 
-Upload the **contents of `.release/v17/`** in Cloudflare Pages Direct Upload. The stage script refuses destinations outside the project-local `.release/` directory, rejects symbolic links and excludes development files, archived datasets and unlicensed font binaries.
+محتویات `.release/site/` را در پروژهٔ Cloudflare Pages از نوع Direct Upload بارگذاری کنید. ابزار ساخت از مسیر خارج از `.release/`، پیمایش پوشه، لینک نمادین، فونت تجاری، فایل خصوصی و نسخهٔ اضافی داده جلوگیری می‌کند.
 
-Direct Upload and Git integration are different Cloudflare Pages project types; confirm the existing project's type before changing deployment processes. Do not create a new project or change a domain without the owner's approval.
+## کش و امنیت
 
-### Optional licensed font deployment
+فایل `_headers` سیاست CSP، هدرهای امنیتی و کش مناسب فایل‌های داده و JavaScript را تنظیم می‌کند. این هدرها در انتشار HTTP اعمال می‌شوند و اجرای آفلاین `file://` را مختل نمی‌کنند.
 
-Only after confirming that the applicable license permits serving those exact files from the intended public domain:
+اگر نسخهٔ قدیمی سایت قبلاً منتشر شده است، پس از انتشار نسخهٔ اصلاح‌شده باید کش مربوط به فایل‌های قدیمی از حساب Cloudflare پاک شود. این اقدام به دسترسی مالک پروژهٔ Cloudflare نیاز دارد. حذف فایل از آخرین commit نیز نسخه‌های قدیمی تاریخچهٔ Git را پاک نمی‌کند؛ بازنویسی تاریخچه یا تغییر وضعیت عمومی مخزن فقط با مجوز صریح مالک مجاز است.
 
-```bash
-python tools/stage-v16-release.py --with-licensed-fonts
-python tools/verify-v16-assets.py --root .release/v17 --require-licensed-fonts
-```
-
-Keep purchased archives on the private deployment machine. This switch does not grant permission to distribute the fonts through public Git history.
-
-## Cache and incident response
-
-`_headers` requires revalidation of mutable JavaScript and public data chunks so a newly deployed HTML page cannot be paired with a stale privacy-sensitive dataset. Security and cache headers apply to HTTP deployment only and do not alter `file://` behavior.
-
-If a vulnerable release was already served, deploy the corrected bundle and purge affected Cloudflare cache entries or purge the project cache using an account with the relevant Cloudflare permissions. Changing provider configuration, removing public Git history or making the repository private requires an explicit owner decision. Removing a file in the next commit alone does not erase public historical blobs or third-party caches.
-
-## Production acceptance checklist
-
-- Confirm 743 professors, 17 faculties and 64 faculty/department units.
-- Confirm faculty → department → course cascading, Persian search and complete filter reset.
-- Confirm professor details and two-professor comparison are visually rendered and keyboard dismissible.
-- Confirm single-response values and dates are absent from the downloaded public data, not merely hidden by the UI.
-- Confirm desktop and mobile layouts, dark/light themes, short avatar-only loader and reduced-motion behavior.
-- Confirm no external runtime requests, proprietary font files, raw student data or horizontal mobile overflow.
-- Check the deployed response's CSP and cache headers.
-
-A `pages.dev` or custom-domain address must come from the actual Cloudflare account or repository configuration; this guide intentionally does not invent a production URL. Reachability from inside Iran or without a VPN cannot be confirmed without an appropriate real network vantage point.
+دامنهٔ `pages.dev` یا دامنهٔ اختصاصی باید از حساب واقعی Cloudflare استخراج شود و نباید حدس زده شود. دسترسی واقعی کاربران داخل ایران یا بدون VPN فقط با آزمایش از همان موقعیت شبکه قابل تأیید است.

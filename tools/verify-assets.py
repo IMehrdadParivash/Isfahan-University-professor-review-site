@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the files actually loaded by the V17 static site and staged releases."""
+"""Verify the complete local runtime, public hashes and redistributable fonts."""
 from __future__ import annotations
 
 import argparse
@@ -15,24 +15,20 @@ from urllib.parse import urlsplit
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 FONT_FILES = {
-    "assets/fonts/RaviFaNum-Regular.woff2": (43204, "4585ddee90901e505dad17a6d446a2c9459cd4530d2da859fd1811b7cc1d3b02"),
-    "assets/fonts/RaviFaNum-Medium.woff2": (43520, "fa2df83e2838143b5387a6cfa95d0c9e189977179996069446d84559956dd01c"),
-    "assets/fonts/RaviFaNum-SemiBold.woff2": (43408, "2a0b49ae99ee6d1afd42c681b5ac54e8d326a6df4c836b2330a9b0b0682e88cf"),
-    "assets/fonts/RaviFaNum-Bold.woff2": (42720, "825cb536d958e3e5c6777c7002c27c3376842157300782c4e09765c6a6e60a32"),
-    "assets/fonts/RaviFaNum-ExtraBlack.woff2": (41964, "8eb8de363eaeba6c6f6bdcbc22175a0cb616f09ca4320359469b0c82f424cbef"),
-    "assets/fonts/Anjoman-Regular.woff2": (37248, "ccf81f0363b368dc3593a544702e219781d0bee2f40ba00161dbe4e2facc7329"),
-    "assets/fonts/Anjoman-Bold.woff2": (37184, "6a53d5d721c706e85fd475dc3020dfde2f1cc5b5f6e8dc85a2793d4e3631a479"),
-    "assets/fonts/Anjoman-ExtraBold.woff2": (37172, "82da9155187954225773b58b2d2799a337551abf18d8b195a8a5477380c6ce15"),
-    "assets/fonts/Anjoman-Heavy.woff2": (38928, "d21efeb9dee50b6c504635b431e11e8b3ebe80fe6a5037289b4ede4e387e9031"),
-    "assets/fonts/Pinar-VF-FD.woff2": (92144, "44ae0dc43d4d7b0750af2914ceffd8a47792654dc44d2810f5891ea142d54146"),
-    "assets/fonts/Kahroba-VF-FD.woff2": (334100, "7cc15af7f4bc8df6d0f62c191126f3e8da2d886acd18ab179071e07ecf1b186c"),
+    "assets/fonts/Vazirmatn-Regular.woff2": (
+        50684,
+        "e382101336c6eb32cfb31381c027d02d2e0354bad08f6a395d4088beb3db3d91",
+    ),
+    "assets/fonts/Vazirmatn-Bold.woff2": (
+        51020,
+        "836fae7d42d83faa249bc00e0099592be98a1fa260d22d82f269b6091e585627",
+    ),
 }
 
 REQUIRED_FILES = [
     "index.html",
     "assets/data/dataset-manifest.json",
-    "assets/fonts/Vazirmatn-Regular.woff2",
-    "assets/fonts/Vazirmatn-Bold.woff2",
+    *FONT_FILES,
     "assets/fonts/OFL.txt",
 ]
 
@@ -46,18 +42,8 @@ def sha256(path: Path) -> str:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--root", type=Path, default=REPO_ROOT, help="Release root to verify")
-    parser.add_argument(
-        "--allow-missing-fonts",
-        action="store_true",
-        help="Compatibility flag: proprietary fonts are optional by default",
-    )
-    parser.add_argument(
-        "--require-licensed-fonts",
-        action="store_true",
-        help="Require all proprietary font binaries for an explicitly licensed private release",
-    )
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=REPO_ROOT, help="Static website root to verify")
     return parser.parse_args()
 
 
@@ -87,16 +73,17 @@ def verify_public_hashes(root: Path) -> int:
     failures = 0
     parts: list[str] = []
     html = (root / "index.html").read_text(encoding="utf-8")
-    referenced_chunks = re.findall(r'<script\b[^>]*\bsrc=["\'](assets/js/data-[^"\']+\.js)["\']', html, flags=re.I)
-    if not set(referenced_chunks).issubset(chunk_hashes):
-        print("FAIL    manifest chunk list does not cover every index.html data script")
+    referenced_chunks = re.findall(
+        r'<script\b[^>]*\bsrc=["\'](assets/data/professors(?:-\d{2})?\.js)["\']',
+        html,
+        flags=re.I,
+    )
+    if set(referenced_chunks) != set(chunk_hashes):
+        print("FAIL    manifest data files do not exactly match index.html dataset scripts")
         failures += 1
 
     for rel, expected in chunk_hashes.items():
         path = root / rel
-        if not path.exists() and rel not in referenced_chunks:
-            # Staged runtime intentionally excludes sanitized backward-compatibility aliases.
-            continue
         if not path.is_file() or path.is_symlink():
             print(f"FAIL    missing/unsafe manifest data chunk: {rel}")
             failures += 1
@@ -153,30 +140,32 @@ def verify_public_hashes(root: Path) -> int:
 
 
 def main() -> int:
-    args = parse_args()
-    root = args.root.resolve()
+    root = parse_args().root.resolve()
     failures = 0
-    missing_fonts = 0
-    print(f"V17 verification root: {root}")
+    print(f"Website verification root: {root}")
     if not (root / "index.html").is_file():
         print("FAIL    missing index.html")
         return 1
-    print("\nV17 actual runtime files")
+    print("\nActual local runtime files")
     for rel in local_html_references(root):
         p = root / rel
         ok = p.is_file() and not p.is_symlink() and p.stat().st_size > 0
         print(f"{'OK' if ok else 'MISSING':7} {rel}")
         failures += 0 if ok else 1
 
-    print("\nV17 optional licensed local fonts")
+    print("\nOfficial, redistributable Vazirmatn fonts")
+    actual_fonts = {
+        path.relative_to(root).as_posix()
+        for path in (root / "assets/fonts").glob("*.woff2")
+    }
+    if actual_fonts != set(FONT_FILES):
+        print(f"FAIL    unexpected or missing public font files: {sorted(actual_fonts ^ set(FONT_FILES))}")
+        failures += 1
     for rel, (expected_size, expected_hash) in FONT_FILES.items():
         p = root / rel
-        if not p.is_file():
-            missing_fonts += 1
-            label = "MISSING" if args.require_licensed_fonts else "SKIP"
-            print(f"{label:7} {rel}")
-            if args.require_licensed_fonts:
-                failures += 1
+        if not p.is_file() or p.is_symlink():
+            print(f"FAIL    missing or unsafe redistributable font: {rel}")
+            failures += 1
             continue
         size = p.stat().st_size
         digest = sha256(p)
@@ -184,16 +173,18 @@ def main() -> int:
         print(f"{'OK' if ok else 'FAIL':7} {rel}  bytes={size}  sha256={digest}")
         failures += 0 if ok else 1
 
-    if missing_fonts and not args.require_licensed_fonts:
-        print(f"\nLicense-safe mode: {missing_fonts} optional proprietary font file(s) absent; system-font fallback is valid.")
+    license_path = root / "assets/fonts/OFL.txt"
+    if not license_path.is_file() or "SIL OPEN FONT LICENSE" not in license_path.read_text(encoding="utf-8"):
+        print("FAIL    complete SIL Open Font License is missing")
+        failures += 1
 
-    print("\nV17 public dataset cryptographic integrity")
+    print("\nPublic dataset cryptographic integrity")
     failures += verify_public_hashes(root)
 
     if failures:
-        print(f"\nV17 verification failed: {failures} item(s) need attention.")
+        print(f"\nWebsite verification failed: {failures} item(s) need attention.")
         return 1
-    print("\nV17 verification passed.")
+    print("\nWebsite verification passed.")
     return 0
 
 

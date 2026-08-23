@@ -1,4 +1,4 @@
-name: V17 Privacy, Static Runtime and Release Gate
+name: Website privacy, quality and release
 
 on:
   push:
@@ -17,16 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Reject singleton evidence, PII, invalid URLs and incorrect hashes
-        run: python tools/validate-v17-data.py
+        run: python tools/validate-data.py
       - name: Prove privacy validator rejects adversarial disclosure and tampering
-        run: python tools/test-v17-data-privacy.py
+        run: python tools/test-data-privacy.py
 
   static-sanity:
     name: Offline runtime, legal fonts and security headers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Validate actual V17 local runtime and safe publication policy
+      - name: Validate the local runtime and safe publication policy
         shell: python
         run: |
           from pathlib import Path
@@ -41,10 +41,10 @@ jobs:
 
           required = [
               'assets/avatar/loader-avatar.webp',
-              'assets/avatar/avatar-motion.js',
+              'assets/js/loader.js',
               'assets/css/fonts.css',
-              'assets/css/ui-hotfix.css',
-              'assets/js/app-v17.js',
+              'assets/css/app.css',
+              'assets/js/app.js',
           ]
           for rel in required:
               if rel not in html:
@@ -72,6 +72,15 @@ jobs:
           if '/.release/' not in ignore:
               failures.append('.release directory is not ignored')
 
+          scripts = re.findall(r'<script\s+src=["\']([^"\']+)["\']', html, flags=re.I)
+          expected_scripts = [f'assets/data/professors-{index:02}.js' for index in range(1, 7)]
+          expected_scripts += ['assets/js/app.js', 'assets/js/loader.js']
+          if scripts != expected_scripts:
+              failures.append(f'index.html must load only verified data and the two runtime scripts: {scripts}')
+          obsolete = list(root.glob('V16*')) + list((root / 'assets/js').glob('data-*.js'))
+          if obsolete:
+              failures.append('obsolete versioned files in public repository: ' + ', '.join(str(path) for path in obsolete))
+
           commercial = [p for p in (root / 'assets/fonts').glob('*.woff2') if p.name.startswith(('RaviFaNum-', 'Anjoman-', 'Pinar-', 'Kahroba-'))]
           if commercial:
               failures.append('proprietary fonts in public repository: ' + ', '.join(str(p) for p in commercial))
@@ -85,10 +94,10 @@ jobs:
         run: python -m compileall -q tools
 
       - name: Verify active executable files and real manifest hashes
-        run: python tools/verify-v16-assets.py --allow-missing-fonts
+        run: python tools/verify-assets.py
 
-      - name: Exercise real V17 data, filters, Persian search and dialogs in Node DOM
-        run: node tools/test-v17-ui-runtime.cjs
+      - name: Exercise real data, filters, Persian search and dialogs in Node DOM
+        run: node tools/test-ui-runtime.cjs
 
   release-safety:
     name: Adversarial safe staging and clean runtime allowlist
@@ -96,16 +105,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Reject path traversal, external deletion, symlinks and tampered data
-        run: python tools/test-v17-release-safety.py
+        run: python tools/test-release-safety.py
       - name: Build default privacy-safe Cloudflare Pages directory
         run: |
-          python tools/stage-v16-release.py
-          python tools/verify-v16-assets.py --root .release/v17 --allow-missing-fonts
+          python tools/build-release.py
+          python tools/verify-assets.py --root .release/site
       - name: Upload exactly the verified static release
         uses: actions/upload-artifact@v4
         with:
-          name: v17-privacy-safe-cloudflare-pages
-          path: .release/v17/
+          name: cloudflare-pages-site
+          path: .release/site/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
@@ -119,18 +128,18 @@ jobs:
         run: python -m pip install --disable-pip-version-check selenium
       - name: Confirm Chrome is available on runner
         run: google-chrome --version
-      - name: Exercise full V17 static runtime through file://
-        run: python tools/browser-smoke-v16.py
+      - name: Exercise the full static runtime through file://
+        run: python tools/test-browser.py
       - name: Check actual visible overlays, advanced filters and mobile layout
-        run: python tools/browser-ui-regression.py
-      - name: Capture V17 QA screenshots
+        run: python tools/test-browser-ui.py
+      - name: Capture website QA screenshots
         if: success()
-        run: python tools/capture-v16-screenshots.py
-      - name: Upload V17 QA screenshots
+        run: python tools/capture-screenshots.py
+      - name: Upload website QA screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: v17-qa-screenshots
+          name: website-qa-screenshots
           path: artifacts/*.png
           if-no-files-found: ignore
           retention-days: 14

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_validator():
-    spec = importlib.util.spec_from_file_location("ui_v17_validator", ROOT / "tools/validate-v17-data.py")
+    spec = importlib.util.spec_from_file_location("ui_v17_validator", ROOT / "tools/validate-data.py")
     if spec is None or spec.loader is None:
         raise RuntimeError("cannot load public V17 validator")
     module = importlib.util.module_from_spec(spec)
@@ -48,11 +48,6 @@ def write_chunks(validator, pack: dict, scripts: list[str]) -> tuple[bytes, byte
         source = (f'window.__UI_DB_GZ_PARTS=["{payload}"];\n' if offset == 0
                   else f'window.__UI_DB_GZ_PARTS.push("{payload}");\n')
         (ROOT / relative).write_text(source, encoding="utf-8")
-        match = validator.re.fullmatch(r"assets/js/data-v17-(\d{2})\.js", relative)
-        if match:
-            alias = ROOT / f"assets/js/data-{match.group(1)}.js"
-            if alias.exists():
-                alias.write_text(source, encoding="utf-8")
     return raw, compressed
 
 

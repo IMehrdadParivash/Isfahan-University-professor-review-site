@@ -1,51 +1,74 @@
-# Isfahan University Professor Review Site — V17
+# راهنمای انتخاب استاد دانشگاه اصفهان
 
-Offline-first, Persian, right-to-left professor/course discovery for the **University of Isfahan**. The application is plain static HTML, CSS and JavaScript: it requires no backend, database, API, external CDN, paid service, build system, Cloudflare Worker or Pages Function.
+وب‌سایتی فارسی، راست‌به‌چپ و کاملاً استاتیک برای جست‌وجو، بررسی و مقایسهٔ استادان دانشگاه اصفهان بر اساس درس مشترک. برنامه بدون بک‌اند، پایگاه داده، API، CDN، سرویس پولی یا اتصال اینترنت اجرا می‌شود و برای انتشار رایگان روی Cloudflare Pages آماده است.
 
-## Canonical public dataset
+## امکانات
 
-- Exactly **743** officially identified professors, **17** faculties, **64** faculty/department units and **61** distinct department labels.
-- Evidence and numeric comparisons exist only for a **professor × course** pair; there is no overall professor rating or legacy Bayesian ranking.
-- The only supported score range is **0–5**.
-- A course or dimension score with fewer than two underlying responses is removed from the public data before publication. Single-response exact dates are also removed.
-- Raw student messages, identifying fields and individual responses must never enter the browser bundle.
-- Public dataset, compressed payload and runtime chunks are cryptographically checked against `assets/data/dataset-manifest.json`.
-- The avatar appears only during the short, reduced-motion-aware loading sequence.
+- جست‌وجوی فارسی با پشتیبانی از شکل‌های مختلف حروف، اعداد، فاصله و نیم‌فاصله.
+- فیلتر ترکیبی دانشکده، گروه آموزشی، درس، مرتبهٔ علمی، تعداد گزارش، تازگی شواهد و شاخص‌های تدریس.
+- مقایسهٔ دو استاد بر اساس درس مشترک و نمونهٔ معتبر؛ بدون تولید امتیاز کلی استاد.
+- ذخیرهٔ محلی استادان، پوستهٔ روشن و تاریک و رابط سازگار با تلفن همراه و صفحه‌خوان.
+- آواتار محدود به صفحهٔ بارگذاری، با رعایت تنظیم کاهش حرکت سیستم.
 
-The older V16 planning/QA documents describe a historical implementation and are not a description of the current V17 runtime. The active entrypoint is `index.html`, the active application is `assets/js/app-v17.js`, and the active public data chunks are the `data-v17-*` files referenced by `index.html`.
+## داده و حریم خصوصی
 
-## Run locally
+| شاخص | مقدار |
+| --- | ---: |
+| استاد رسمی | ۷۴۳ |
+| دانشکده | ۱۷ |
+| واحد آموزشی وابسته به دانشکده | ۶۴ |
+| عنوان متمایز گروه آموزشی | ۶۱ |
+| مقیاس امتیاز هر استاد × درس | ۰ تا ۵ |
+| حداقل نمونه برای نمایش امتیاز | ۲ گزارش |
 
-Open `index.html` directly as a `file://` URL in a recent Chromium-based browser. No development server is required. Alternatively, any static file server or Cloudflare Pages can serve the repository root.
+امتیاز کلی یا جزئی نمونه‌های تک‌نفره و تاریخ دقیق آن‌ها پیش از تولید فایل عمومی حذف می‌شود. متن خام گفت‌وگوها، نام دانشجو، شماره تماس، ایمیل و پاسخ فردی نباید وارد فرانت‌اند شود. فایل داده و اسکریپت‌های اجرایی با SHA-256 و `assets/data/dataset-manifest.json` اعتبارسنجی می‌شوند.
 
-## Verify before publication
+## ساختار مخزن
 
-```bash
-python tools/validate-v17-data.py
-python tools/verify-v16-assets.py --allow-missing-fonts
-python tools/stage-v16-release.py
-python tools/verify-v16-assets.py --root .release/v17 --allow-missing-fonts
+```text
+.
+├── index.html
+├── _headers
+├── robots.txt
+├── assets/
+│   ├── avatar/                 # فقط تصاویر صفحهٔ بارگذاری
+│   ├── css/                    # سبک صفحه و فونت محلی
+│   ├── data/
+│   │   ├── professors-*.js     # شش قطعهٔ معتبر دادهٔ عمومی فشرده
+│   │   └── dataset-manifest.json
+│   ├── fonts/                  # Vazirmatn و مجوز OFL
+│   └── js/
+│       ├── app.js              # منطق اصلی برنامه
+│       └── loader.js           # بارگذاری کوتاه و دسترس‌پذیر
+├── tools/                      # اعتبارسنجی، آزمون و ساخت انتشار
+└── .github/workflows/ci.yml
 ```
 
-The tooling filenames retain their original V16 names for backward compatibility, but they inspect the files actually referenced by the V17 entrypoint. Browser checks on runners with Chrome and Selenium are:
+## اجرای محلی
+
+فایل `index.html` را مستقیماً در مرورگر مبتنی بر Chromium باز کنید؛ نصب وابستگی و اجرای سرور لازم نیست. برای بررسی فایل‌ها و ساخت بستهٔ انتشار:
 
 ```bash
-python tools/browser-smoke-v16.py
-python tools/browser-ui-regression.py
+python3 tools/validate-data.py
+python3 tools/test-data-privacy.py
+node tools/test-ui-runtime.cjs
+python3 tools/test-release-safety.py
+python3 tools/verify-assets.py
+python3 tools/build-release.py
+python3 tools/verify-assets.py --root .release/site
 ```
 
-GitHub Actions executes the data, source, staging-safety and real-browser checks for pull requests and pushes to `main`.
-
-## Font licensing
-
-The default public release bundles the official **Vazirmatn Regular and Bold** WOFF2 files under the **SIL Open Font License 1.1**, includes the complete license at `assets/fonts/OFL.txt`, keeps operating-system Persian-capable fallbacks, and publishes **no proprietary font binaries**. Commercial font archives, extracted proprietary families and `.release/` are gitignored.
-
-If you independently confirm that a purchased font license permits public web serving, you can prepare a separate local release with:
+آزمون‌های مرورگر واقعی، در صورت وجود Chrome و Selenium:
 
 ```bash
-python tools/stage-v16-release.py --with-licensed-fonts
+python3 tools/test-browser.py
+python3 tools/test-browser-ui.py
 ```
 
-This opt-in requires the licensed archives expected by `tools/install-v16-fonts.py`. It does not make publishing those files in a public Git repository lawful. Removing files in a new commit does **not** remove historical public Git blobs or previously deployed/cached copies; history rewriting, repository-visibility changes and provider cache purges require explicit repository-owner decisions and access.
+GitHub Actions برای هر Pull Request و هر تغییر `main` اعتبار داده، محرمانگی، سلامت فایل‌ها، ایمنی انتشار، رابط کاربری و مرورگر واقعی را بررسی می‌کند.
 
-See [CLOUDFLARE_PAGES.md](CLOUDFLARE_PAGES.md) for both Git-integrated and direct-upload publication.
+## فونت و انتشار
+
+فقط فونت محلی **Vazirmatn Regular/Bold** با مجوز **SIL Open Font License 1.1** منتشر می‌شود؛ متن کامل مجوز در `assets/fonts/OFL.txt` قرار دارد. فونت تجاری، آرشیو خصوصی و پوشهٔ `.release/` نباید وارد مخزن عمومی شوند.
+
+راهنمای تنظیم و انتشار: [CLOUDFLARE_PAGES.md](CLOUDFLARE_PAGES.md).

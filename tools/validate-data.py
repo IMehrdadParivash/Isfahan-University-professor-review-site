@@ -25,7 +25,7 @@ EXPECTED = {
 }
 AS_OF = dt.date(2026, 8, 23)
 DIMENSIONS = ("coherence", "knowledge", "teaching", "management", "responsiveness", "behavior")
-DATA_SCRIPT = re.compile(r'<script\b[^>]*\bsrc=["\'](assets/js/data-[^"\']+\.js)["\']', re.I)
+DATA_SCRIPT = re.compile(r'<script\b[^>]*\bsrc=["\'](assets/data/professors(?:-\d{2})?\.js)["\']', re.I)
 SCRIPT = re.compile(r'<script\b[^>]*\bsrc=["\']([^"\']+)["\']', re.I)
 PAYLOAD = re.compile(r'["\']([A-Za-z0-9+/=]{100,})["\']')
 EMAIL = re.compile(r"[A-Za-z0-9.!#$%&'*+\-/=?^_`{|}~]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
@@ -87,30 +87,22 @@ def evidence_digest(pack: dict) -> str:
 
 def runtime_references() -> list[str]:
     references = SCRIPT.findall(INDEX.read_text(encoding="utf-8"))
-    return [path for path in references if path.startswith("assets/") and not path.startswith("assets/js/data-")]
+    data_scripts = set(script_references())
+    return [path for path in references if path.startswith("assets/") and path not in data_scripts]
 
 
 def public_chunk_files(scripts: list[str]) -> list[str]:
-    paths = set(scripts)
-    for relative in scripts:
-        match = re.fullmatch(r"assets/js/data-v17-(\d{2})\.js", relative)
-        if match:
-            alias = f"assets/js/data-{match.group(1)}.js"
-            if (ROOT / alias).exists():
-                paths.add(alias)
-    return sorted(paths)
+    return sorted(scripts)
 
 
-def validate_aliases(scripts: list[str]) -> None:
-    for relative in scripts:
-        match = re.fullmatch(r"assets/js/data-v17-(\d{2})\.js", relative)
-        if match:
-            alias = ROOT / f"assets/js/data-{match.group(1)}.js"
-            if alias.exists() and alias.read_bytes() != (ROOT / relative).read_bytes():
-                fail(f"legacy public data alias differs from sanitized source: {alias.relative_to(ROOT)}")
+def validate_public_payloads(scripts: list[str]) -> None:
     allowed = set(public_chunk_files(scripts))
-    for path in (ROOT / "assets/js").glob("data-*.js"):
+    candidates = list((ROOT / "assets/data").glob("*.js"))
+    candidates.extend((ROOT / "assets/js").glob("data*.js"))
+    for path in candidates:
         relative = path.relative_to(ROOT).as_posix()
+        if path.is_symlink():
+            fail(f"unsafe symbolic-link public data file: {relative}")
         if relative not in allowed and PAYLOAD.search(path.read_text(encoding="utf-8")):
             fail(f"untracked public data payload may expose unsanitized evidence: {relative}")
 
@@ -168,7 +160,7 @@ def main() -> int:
     scripts = script_references()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     pack, raw, compressed = load_public_data(scripts)
-    validate_aliases(scripts)
+    validate_public_payloads(scripts)
     validate_hashes(pack, raw, compressed, scripts, manifest)
 
     if set(pack) != {"v", "dims", "s", "f", "d", "c", "p"}:
