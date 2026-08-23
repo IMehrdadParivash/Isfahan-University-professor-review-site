@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sanitize every public V17 dataset copy and regenerate verifiable hashes."""
+"""Sanitize every public V18 dataset copy and regenerate verifiable integrity metadata."""
 from __future__ import annotations
 
 import argparse
@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_validator():
-    spec = importlib.util.spec_from_file_location("ui_v17_validator", ROOT / "tools/validate-data.py")
+    spec = importlib.util.spec_from_file_location("ui_v18_validator", ROOT / "tools/validate-data.py")
     if spec is None or spec.loader is None:
-        raise RuntimeError("cannot load public V17 validator")
+        raise RuntimeError("cannot load public V18 validator")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -54,11 +54,20 @@ def write_chunks(validator, pack: dict, scripts: list[str]) -> tuple[bytes, byte
 def update_manifest(validator, pack: dict, raw: bytes, compressed: bytes, scripts: list[str]) -> None:
     path = ROOT / "assets/data/dataset-manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8"))
-    manifest["dataset_version"] = "2026-08-23-v3-privacy-hardened"
+    manifest["dataset_version"] = "2026-08-23-v4-professor-level"
     manifest["statistics"] = dict(pack["s"])
+    manifest.setdefault("methodology", {}).update(
+        underlying_evidence_grain="professor × course",
+        public_score_grain="professor",
+        public_professor_score=True,
+        public_professor_score_method="report-count-weighted mean of privacy-safe structured course means",
+        qualitative_summaries_affect_numeric_score=False,
+    )
     manifest.setdefault("privacy", {}).update(
         student_personal_identifiers_in_frontend=False,
         raw_chat_text_in_frontend=False,
+        student_usernames_in_frontend=False,
+        qualitative_summaries_anonymized=True,
         singleton_scores_removed_before_publication=True,
         singleton_exact_dates_removed_before_publication=True,
     )
@@ -71,10 +80,12 @@ def update_manifest(validator, pack: dict, raw: bytes, compressed: bytes, script
             relative: validator.sha256((ROOT / relative).read_bytes())
             for relative in validator.public_chunk_files(scripts)
         },
-        "public_runtime_files": {
-            relative: validator.sha256((ROOT / relative).read_bytes())
+    }
+    manifest["integrity"] = {
+        "public_runtime_git_blobs": {
+            relative: validator.git_blob_sha1((ROOT / relative).read_bytes())
             for relative in sorted(validator.runtime_references())
-        },
+        }
     }
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -88,7 +99,7 @@ def main() -> int:
     raw, compressed = write_chunks(validator, pack, scripts)
     update_manifest(validator, pack, raw, compressed, scripts)
     print(
-        f"Public V17 dataset rebuilt: {overall} singleton overall scores, "
+        f"Public V18 dataset rebuilt: {overall} singleton overall scores, "
         f"{dimensions} singleton dimension scores, and {dates} exact singleton dates removed; "
         f"{len(validator.public_chunk_files(scripts))} public chunk copies updated."
     )
