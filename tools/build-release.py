@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safely stage only the active V17 static runtime under the local .release tree."""
+"""Safely build the active static website under the local .release tree."""
 from __future__ import annotations
 
 import argparse
@@ -36,12 +36,7 @@ class AssetParser(HTMLParser):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, default=RELEASE_ROOT / "v17")
-    parser.add_argument(
-        "--with-licensed-fonts",
-        action="store_true",
-        help="Explicitly install purchased commercial font archives after confirming web-serving rights",
-    )
+    parser.add_argument("--output", type=Path, default=RELEASE_ROOT / "site")
     return parser.parse_args()
 
 
@@ -91,7 +86,7 @@ def active_runtime_files() -> set[Path]:
 
     # Only image paths explicitly used by the loading-story motion code ship;
     # leftover persistent-helper avatar poses must not enter the public bundle.
-    motion = ROOT / "assets/avatar/avatar-motion.js"
+    motion = ROOT / "assets/js/loader.js"
     if motion.is_file():
         for match in re.findall(r"(?:assets/avatar/)([A-Za-z0-9_-]+\.webp)", motion.read_text(encoding="utf-8")):
             path = Path("assets/avatar") / match
@@ -128,7 +123,7 @@ def main() -> int:
 
     # Cryptographic hashes cannot replace semantic privacy validation: a freshly
     # rehashed but disclosure-bearing dataset must never delete or replace output.
-    run(sys.executable, str(TOOLS / "validate-v17-data.py"))
+    run(sys.executable, str(TOOLS / "validate-data.py"))
 
     if output.exists():
         shutil.rmtree(output)
@@ -143,14 +138,9 @@ def main() -> int:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination, follow_symlinks=False)
 
-    if args.with_licensed_fonts:
-        run(sys.executable, str(TOOLS / "install-v16-fonts.py"), "--dest-root", str(output))
-        font_mode = "--require-licensed-fonts"
-    else:
-        font_mode = "--allow-missing-fonts"
-    run(sys.executable, str(TOOLS / "verify-v16-assets.py"), "--root", str(output), font_mode)
+    run(sys.executable, str(TOOLS / "verify-assets.py"), "--root", str(output))
 
-    print("\nV17 staged release is ready:")
+    print("\nThe static website release is ready:")
     print(output)
     print("Deploy this directory itself to Cloudflare Pages; do not deploy .release/ as a parent folder.")
     return 0

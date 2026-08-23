@@ -1,6 +1,6 @@
-# Public, local Persian typography — V17
+# Public, local Persian typography
 
-The public V17 release bundles only the official Vazirmatn Persian/Arabic fonts
+The public release bundles only the official Vazirmatn Persian/Arabic fonts
 from <https://github.com/rastikerdar/vazirmatn>. They are redistributed under
 the SIL Open Font License 1.1; the complete upstream license is provided in
 [`OFL.txt`](OFL.txt).
@@ -16,5 +16,3 @@ connection or paid service at runtime.
 
 Commercial Ravi, Anjoman, Pinar and Kahroba binaries must not be committed to
 the public repository. Their names and private archives are ignored by Git.
-The optional legacy installer is appropriate only for a separate local staging
-process after the owner has verified the specific public-web-use license.

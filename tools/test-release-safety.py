@@ -12,8 +12,8 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-STAGER = ROOT / "tools/stage-v16-release.py"
-VERIFIER = ROOT / "tools/verify-v16-assets.py"
+STAGER = ROOT / "tools/build-release.py"
+VERIFIER = ROOT / "tools/verify-assets.py"
 RELEASE = ROOT / ".release"
 PROPRIETARY = ("RaviFaNum-", "Anjoman-", "Pinar-", "Kahroba-")
 
@@ -91,6 +91,9 @@ def main() -> int:
             "robots.txt",
             "favicon.svg",
             "assets/data/dataset-manifest.json",
+            "assets/js/app.js",
+            "assets/js/loader.js",
+            "assets/css/app.css",
             "assets/fonts/Vazirmatn-Regular.woff2",
             "assets/fonts/Vazirmatn-Bold.woff2",
             "assets/fonts/OFL.txt",
@@ -98,7 +101,10 @@ def main() -> int:
         require(required <= staged_files, f"required staged runtime files missing: {sorted(required - staged_files)}")
         require(not any(path.startswith(("tools/", ".github/", "vendor-fonts/")) for path in staged_files), "development/private files entered release")
         require(not any(Path(path).name.startswith(PROPRIETARY) for path in staged_files), "commercial fonts entered default public release")
-        require(not any(path.startswith("assets/js/data-") and not path.startswith("assets/js/data-v17-") for path in staged_files), "inactive archived data chunks entered release")
+        dataset_scripts = {path for path in staged_files if path.startswith("assets/data/") and path.endswith(".js")}
+        expected_dataset = {f"assets/data/professors-{index:02}.js" for index in range(1, 7)}
+        require(dataset_scripts == expected_dataset, f"unexpected public dataset copies: {sorted(dataset_scripts)}")
+        require(not any(path.startswith("assets/js/data") for path in staged_files), "inactive archived data chunks entered release")
         require(not any(path.endswith("README.md") for path in staged_files), "documentation unexpectedly entered staged release")
         active_loader_poses = {"pose-walk.webp", "pose-think.webp", "pose-work.webp", "pose-success.webp"}
         staged_poses = {Path(path).name for path in staged_files if path.startswith("assets/avatar/pose-")}
@@ -106,15 +112,14 @@ def main() -> int:
 
         manifest = json.loads((output / "assets/data/dataset-manifest.json").read_text(encoding="utf-8"))
         chunk_hashes = manifest["sha256"]["public_data_chunks"]
+        require(set(chunk_hashes) == expected_dataset, "manifest contains stale dataset aliases")
         for relative, expected in chunk_hashes.items():
             staged_chunk = output / relative
-            if not staged_chunk.exists() and not relative.startswith("assets/js/data-v17-"):
-                continue
             actual = hashlib.sha256(staged_chunk.read_bytes()).hexdigest()
             require(actual == expected, f"staged chunk hash mismatch: {relative}")
 
         result = subprocess.run(
-            [sys.executable, str(VERIFIER), "--root", str(output), "--allow-missing-fonts"],
+            [sys.executable, str(VERIFIER), "--root", str(output)],
             cwd=ROOT,
             capture_output=True,
             text=True,
@@ -127,7 +132,7 @@ def main() -> int:
         tamper_target.write_bytes(original + b"\n// tamper regression probe\n")
         try:
             result = subprocess.run(
-                [sys.executable, str(VERIFIER), "--root", str(output), "--allow-missing-fonts"],
+                [sys.executable, str(VERIFIER), "--root", str(output)],
                 cwd=ROOT,
                 capture_output=True,
                 text=True,

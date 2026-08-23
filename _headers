@@ -15,9 +15,6 @@
 /assets/js/*
   Cache-Control: public, max-age=3600, must-revalidate
 
-/assets/js/data-*
-  Cache-Control: no-cache, must-revalidate
-
 /assets/data/*
   Cache-Control: no-cache, must-revalidate
 

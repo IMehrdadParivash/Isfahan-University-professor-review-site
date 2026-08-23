@@ -6,7 +6,7 @@
 /Pinar-V3 [[]@FontiranIR[]].zip
 /Kahroba-Pro.zip
 
-# Proprietary webfonts are allowed only in an explicitly licensed local staging run.
+# Proprietary webfonts must never enter the public repository or release.
 /assets/fonts/RaviFaNum-*.woff2
 /assets/fonts/Anjoman-*.woff2
 /assets/fonts/Pinar-*.woff2

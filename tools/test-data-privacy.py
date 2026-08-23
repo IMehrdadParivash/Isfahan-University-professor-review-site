@@ -31,10 +31,10 @@ class PublicDataPrivacyRegression(unittest.TestCase):
         for folder in ("assets/js", "assets/data", "assets/avatar"):
             shutil.copytree(ROOT / folder, self.root / folder)
         (self.root / "tools").mkdir()
-        for name in ("validate-v17-data.py", "sanitize-v17-data.py"):
+        for name in ("validate-data.py", "sanitize-data.py"):
             shutil.copy2(ROOT / "tools" / name, self.root / "tools" / name)
-        self.validator = import_from(self.root / "tools/validate-v17-data.py", "v17_privacy_validator")
-        self.sanitizer = import_from(self.root / "tools/sanitize-v17-data.py", "v17_privacy_sanitizer")
+        self.validator = import_from(self.root / "tools/validate-data.py", "v17_privacy_validator")
+        self.sanitizer = import_from(self.root / "tools/sanitize-data.py", "v17_privacy_sanitizer")
 
     def tearDown(self) -> None:
         self.directory.cleanup()
@@ -127,12 +127,13 @@ class PublicDataPrivacyRegression(unittest.TestCase):
     def test_loaded_chunk_tampering_is_rejected(self) -> None:
         path = self.root / self.validator.script_references()[0]
         path.write_text(path.read_text(encoding="utf-8") + "// tampered\n", encoding="utf-8")
-        self.assert_rejected("legacy public data alias differs")
+        self.assert_rejected("sha256 mismatch for executable/data file")
 
-    def test_legacy_alias_tampering_is_rejected(self) -> None:
-        path = self.root / "assets/js/data-01.js"
-        path.write_text(path.read_text(encoding="utf-8") + "// old unsafe alias\n", encoding="utf-8")
-        self.assert_rejected("legacy public data alias differs")
+    def test_unreferenced_public_dataset_copy_is_rejected(self) -> None:
+        source = self.root / self.validator.script_references()[0]
+        copy = self.root / "assets/data/professors-archived.js"
+        copy.write_bytes(source.read_bytes())
+        self.assert_rejected("untracked public data payload")
 
     def test_runtime_executable_tampering_is_rejected(self) -> None:
         path = self.root / self.validator.runtime_references()[0]
