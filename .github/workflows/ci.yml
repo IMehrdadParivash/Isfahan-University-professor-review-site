@@ -43,6 +43,7 @@ jobs:
               'assets/avatar/loader-avatar.webp',
               'assets/js/loader.js',
               'assets/js/community-notes.js',
+              'assets/js/feedback-texts.js',
               'assets/css/fonts.css',
               'assets/css/app.css',
               'assets/js/app.js',
@@ -77,7 +78,7 @@ jobs:
 
           scripts = re.findall(r'<script\s+src=["\']([^"\']+)["\']', html, flags=re.I)
           expected_scripts = [f'assets/data/professors-{index:02}.js' for index in range(1, 7)]
-          expected_scripts += ['assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/loader.js']
+          expected_scripts += ['assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/feedback-texts.js', 'assets/js/loader.js']
           if scripts != expected_scripts:
               failures.append(f'index.html runtime script allowlist drifted: {scripts}')
           if 'id="course"' in html or 'id="compareModal"' in html or 'precisionFilters' in html:
@@ -86,6 +87,14 @@ jobs:
           notes = (root / 'assets/js/community-notes.js').read_text(encoding='utf-8')
           if re.search(r'\bin reply to\b', notes, flags=re.I) or re.search(r'\[\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}', notes):
               failures.append('raw chat markers or timestamps leaked into qualitative summaries')
+
+          feedback = (root / 'assets/js/feedback-texts.js').read_text(encoding='utf-8')
+          if re.search(r"[A-Za-z0-9.!#$%&'*+\-/=?^_`{|}~]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", feedback):
+              failures.append('email address leaked into sanitized feedback excerpts')
+          if re.search(r'(?<!\d)(?:\+98|0098|0)?9\d{9}(?!\d)', feedback):
+              failures.append('Iranian mobile number leaked into sanitized feedback excerpts')
+          if re.search(r'https?://|t\.me/|\bin reply to\b', feedback, flags=re.I) or re.search(r'\[\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}', feedback):
+              failures.append('raw source link, chat marker or timestamp leaked into sanitized feedback excerpts')
 
           obsolete = list(root.glob('V16*')) + list((root / 'assets/js').glob('data-*.js'))
           if obsolete:
@@ -98,13 +107,14 @@ jobs:
           if failures:
               print('\n'.join('FAIL: ' + issue for issue in failures))
               sys.exit(1)
-          print('V18 static/offline, privacy-summary, security-header and font-license checks passed.')
+          print('V18 static/offline, privacy-summary, sanitized-feedback, security-header and font-license checks passed.')
 
       - name: Check all release and browser tooling syntax
         run: |
           python -m compileall -q tools
           node --check assets/js/app.js
           node --check assets/js/community-notes.js
+          node --check assets/js/feedback-texts.js
           node --check assets/js/loader.js
 
       - name: Verify active data hashes and runtime Git blobs
