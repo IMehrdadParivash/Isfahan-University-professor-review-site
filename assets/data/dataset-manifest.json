@@ -1,0 +1,39 @@
+{
+  "dataset_version": "2026-08-23-v2",
+  "canonical_roster_date": "2026-08-22",
+  "canonical_professor_count": 743,
+  "statistics": {
+    "professors": 743,
+    "faculties": 17,
+    "department_units": 64,
+    "unique_department_labels": 61,
+    "courses_with_current_roster_evidence": 842,
+    "professors_with_any_public_evidence": 418,
+    "professors_with_structured_evidence": 401,
+    "professors_with_at_least_one_cautiously_rankable_course": 30,
+    "current_professor_course_pairs": 1128,
+    "cautiously_rankable_course_pairs": 34
+  },
+  "methodology": {
+    "professor_master": "official 743-person current educational roster",
+    "review_grain": "professor × course",
+    "source_structured_survey_scale": "0–10",
+    "normalized_scale": "0–5",
+    "numeric_display_minimum_reports": 2,
+    "cautious_ranking_guardrail": "minimum 3 structured reports AND latest evidence <= 3 years",
+    "global_professor_score": false,
+    "legacy_bayesian_score_used": false,
+    "legacy_prior_issue": "prior 3 was not neutral on normalized 0–5 scale; legacy Bayesian scores excluded",
+    "historical_or_unresolved_in_main_professor_list": false
+  },
+  "privacy": {
+    "student_personal_identifiers_in_frontend": false,
+    "raw_chat_text_in_frontend": false
+  },
+  "sha256": {
+    "canonical_roster": "fcb9af1a4edef36abc4d7de84381a9c9c968728de77db2aa17de8b7acfe79e92",
+    "source_bundle": "a911c12380b63f96fd990c8e2ff0f0797c141244f4ab7f357bca84bc3ec79446",
+    "safe_evidence": "9272babee03bcb05c36b4cb239a05772a87e48defa08384564a123a951b0a463",
+    "site_database": "e51b7ad9264f4edb2b2bfc9b110576cd53153c480de5857c74f5ea46fbb46ec8"
+  }
+}

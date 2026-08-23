@@ -1,85 +1,119 @@
-const DATA_GZ=(window.__DATA_GZ_PARTS||[]).join("");
-async function __loadData(){const b=Uint8Array.from(atob(DATA_GZ),c=>c.charCodeAt(0));const s=new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"));return JSON.parse(await new Response(s).text())}
-(async()=>{const DATA=await __loadData();
-
-const $=s=>document.querySelector(s);const esc=(s="")=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));const uniq=a=>[...new Set(a.filter(Boolean))];
-const dimLabels={coherence:"پیوستگی تدریس",knowledge:"دانش عمومی",teaching:"انتقال مطالب",management:"مدیریت کلاس",responsiveness:"پاسخگویی",behavior:"رفتار با دانشجو"};
-let limit=30,rate="all",minReviews=0,compare=[],savedOnly=false;
-function safeGet(k,fallback){try{return localStorage.getItem(k)??fallback}catch{return fallback}}
+const DATA_GZ=(window.__UI_DB_GZ_PARTS||[]).join("");
+async function __loadData(){
+  if(!DATA_GZ) throw new Error("embedded dataset is missing");
+  const b=Uint8Array.from(atob(DATA_GZ),c=>c.charCodeAt(0));
+  const s=new Blob([b]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return JSON.parse(await new Response(s).text());
+}
+(async()=>{
+const RAW=await __loadData();
+const DATA={stats:RAW.s,faculties:RAW.f,department_labels:RAW.d,courses:RAW.c,professors:RAW.p.map(a=>({id:a[0],name_fa:a[1],academic_rank:a[2],faculty:a[3],department:a[4],official_profile_url:a[5],review_coverage:{has_any_public_evidence:!!a[6][0],structured_evidence_count:a[6][1],qualitative_chat_evidence_count:a[6][2],course_pair_count:a[6][3],cautiously_rankable_course_pair_count:a[6][4]},courses:a[7].map(c=>({course:c[0],structured_report_count:c[1],overall_observed_mean_0_5:c[2],dimensions:Object.fromEntries(RAW.dims.map((k,i)=>[k,{observed_mean_0_5:c[3][i][0],sample_size:c[3][i][1]}])),latest_evidence_date:c[4],ranking_eligible_under_proposed_policy:!!c[5]}))}))};
+const $=s=>document.querySelector(s);
+const esc=(s="")=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+const uniq=a=>[...new Set(a.filter(Boolean))];
+const fa=n=>Number(n||0).toLocaleString("fa-IR");
+const dimLabels={coherence:"پیوستگی تدریس",knowledge:"دانش عمومی",teaching:"انتقال مطالب",management:"مدیریت کلاس",responsiveness:"پاسخ‌گویی",behavior:"رفتار با دانشجو"};
+let limit=30,statusFilter="all",minEvidence=0,compare=[],savedOnly=false;
+function safeGet(k,f){try{return localStorage.getItem(k)??f}catch{return f}}
 function safeSet(k,v){try{localStorage.setItem(k,v)}catch{}}
-let saved=new Set(JSON.parse(safeGet("ui_saved_professors","[]")));
-function saveLocal(){safeSet("ui_saved_professors",JSON.stringify([...saved]))}
-function dominant(mix){if(!mix)return"نامشخص";const a=Object.entries(mix).filter(([k])=>k!=="نامشخص").sort((a,b)=>b[1]-a[1]);return a[0]?.[0]||"نامشخص"}
-function scoreClass(v){return v==null?"":v>=8?"good":v>=6?"mid":"low"}
-function scorePct(v){return Math.max(0,Math.min(100,(v||0)*10))}
+let saved=new Set(JSON.parse(safeGet("ui_saved_professor_ids","[]")).map(Number));
+function saveLocal(){safeSet("ui_saved_professor_ids",JSON.stringify([...saved]))}
 function fillSelect(el,items,label){el.innerHTML=`<option value="">${label}</option>`+items.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("")}
-function init(){const s=DATA.stats;$("#mReviews").textContent=s.reviews.toLocaleString("fa-IR");$("#mProfessors").textContent=s.professors.toLocaleString("fa-IR");$("#mFaculties").textContent=s.faculties.toLocaleString("fa-IR");$("#mAvg").textContent=s.overall_avg.toLocaleString("fa-IR");const complete=DATA.professors.reduce((n,p)=>n+(p.complete_review_count||0),0);$("#mComplete").textContent=complete.toLocaleString("fa-IR");const community=DATA.stats.community_experiences||0;const mc=$("#mCommunity");if(mc)mc.textContent=community.toLocaleString("fa-IR");fillSelect($("#faculty"),DATA.faculties,"همه دانشکده‌ها");fillSelect($("#department"),uniq(DATA.professors.flatMap(p=>p.departments)).sort((a,b)=>a.localeCompare(b,"fa")),"همه گروه‌ها");fillSelect($("#course"),uniq(DATA.professors.flatMap(p=>p.courses)).sort((a,b)=>a.localeCompare(b,"fa")),"همه درس‌ها");renderReliable();render();applyTheme();applyHash()}
-function renderReliable(){const arr=[...DATA.professors].filter(p=>p.review_count>=5&&p.avg_score!=null).sort((a,b)=>b.avg_score-a.avg_score||b.review_count-a.review_count).slice(0,4);$("#reliableGrid").innerHTML=arr.map(p=>`<article class="reliable" data-open="${esc(p.name)}"><div class="reliable-top"><div><div class="reliable-name">${esc(p.name)}</div><div class="reliable-faculty">${esc(p.faculties[0]||"")}</div></div><div class="reliable-score">${p.avg_score.toLocaleString("fa-IR")}</div></div><div class="reliable-meta">${p.review_count.toLocaleString("fa-IR")} نظر • ${esc((p.courses||[]).slice(0,2).join("، ")||"درس ثبت نشده")}</div></article>`).join("");document.querySelectorAll("[data-open]").forEach(x=>x.onclick=()=>openProfessor(x.dataset.open))}
-function searchable(p){return [p.name,...p.faculties,...p.departments,...p.courses].join(" ").toLowerCase()}
-function getFiltered(){const q=$("#q").value.trim().toLowerCase(),f=$("#faculty").value,d=$("#department").value,c=$("#course").value,sort=$("#sort").value;let arr=DATA.professors.filter(p=>{if(q&&!searchable(p).includes(q))return false;if(f&&!p.faculties.includes(f))return false;if(d&&!p.departments.includes(d))return false;if(c&&!p.courses.includes(c))return false;if(savedOnly&&!saved.has(p.name))return false;if(p.review_count<minReviews)return false;if(rate==="8"&&!(p.avg_score>=8))return false;if(rate==="6"&&!(p.avg_score>=6&&p.avg_score<8))return false;return true});if(sort==="rating")arr.sort((a,b)=>(b.avg_score??-1)-(a.avg_score??-1)||b.review_count-a.review_count);else if(sort==="name")arr.sort((a,b)=>a.name.localeCompare(b.name,"fa"));else arr.sort((a,b)=>b.review_count-a.review_count||(b.avg_score??-1)-(a.avg_score??-1));return arr}
-function cardHTML(p){const grading=dominant(p.grading_mix),attendance=dominant(p.attendance_mix),confidence=p.review_count>=5?"پشتوانه بهتر":p.review_count>=2?"نمونه محدود":"یک نظر";return `<article class="card"><div class="card-main" data-open="${esc(p.name)}"><div class="card-head"><div class="person"><div class="name">${esc(p.name)}</div><div class="faculty">${esc(p.faculties.join(" • ")||"دانشکده نامشخص")}</div></div><div class="score-ring ${scoreClass(p.avg_score)}" style="--p:${scorePct(p.avg_score)}"><div class="score-val">${p.avg_score==null?"—":p.avg_score.toLocaleString("fa-IR")}<small>از ۱۰</small></div></div></div><div class="badges"><span class="badge ${p.review_count>=5?"strong":p.review_count<2?"warn":""}">${p.review_count.toLocaleString("fa-IR")} نظر</span>${p.departments.slice(0,1).map(x=>`<span class="badge">${esc(x)}</span>`).join("")}<span class="badge">${confidence}</span></div><div class="courses">${esc(p.courses.slice(0,5).join("، ")||"درس ثبت نشده")}</div><div class="signal"><div><label>الگوی نمره‌دهی</label><span>${esc(grading)}</span></div><div><label>حضور و غیاب</label><span>${esc(attendance)}</span></div></div></div><div class="card-foot"><div class="card-actions"><button class="mini-btn ${saved.has(p.name)?"on":""}" data-save="${esc(p.name)}">★ ذخیره</button><button class="mini-btn ${compare.includes(p.name)?"on":""}" data-compare="${esc(p.name)}">⇄ مقایسه</button></div><span class="details-link" data-open="${esc(p.name)}">جزئیات ←</span></div></article>`}
-function render(){const arr=getFiltered();$("#resultCount").textContent=`${arr.length.toLocaleString("fa-IR")} نتیجه`;$("#cards").innerHTML=arr.slice(0,limit).map(cardHTML).join("")||`<div class="empty">با این فیلترها نتیجه‌ای پیدا نشد.</div>`;$("#loadMore").style.display=arr.length>limit?"block":"none";document.querySelectorAll("[data-open]").forEach(x=>x.onclick=()=>openProfessor(x.dataset.open));document.querySelectorAll("[data-save]").forEach(x=>x.onclick=e=>{e.stopPropagation();toggleSave(x.dataset.save)});document.querySelectorAll("[data-compare]").forEach(x=>x.onclick=e=>{e.stopPropagation();toggleCompare(x.dataset.compare)});$("#savedToggle").classList.toggle("on",savedOnly);$("#savedToggle").textContent=savedOnly?"★ نمایش همه":"★ ذخیره‌شده‌ها";const sc=$("#savedCheck");if(sc)sc.checked=savedOnly}
-function toggleSave(name){saved.has(name)?saved.delete(name):saved.add(name);saveLocal();render();if($("#drawer").classList.contains("open")&&$("#dName").textContent===name)openProfessor(name,false)}
-function toggleCompare(name){if(compare.includes(name))compare=compare.filter(x=>x!==name);else if(compare.length<3)compare.push(name);else{alert("حداکثر ۳ استاد را هم‌زمان مقایسه کنید.");return}render();updateCompare()}
-function updateCompare(){$("#compareNames").innerHTML=compare.map(n=>`<span class="ctag">${esc(n)}</span>`).join("");$("#compareBar").classList.toggle("show",compare.length>0);$("#compareGo").disabled=compare.length<2}
-function dimHTML(p){return Object.entries(dimLabels).map(([k,l])=>{const v=p.dimensions?.[k];return `<div class="dim"><div class="dim-top"><span>${l}</span><b>${v==null?"—":v.toLocaleString("fa-IR")}</b></div><div class="track"><i style="width:${v==null?0:v*10}%"></i></div></div>`}).join("")}
-function mixHTML(title,mix){const rows=Object.entries(mix||{}).sort((a,b)=>b[1]-a[1]).slice(0,5);return `<div class="mix"><h4>${title}</h4><div class="mix-tags">${rows.map(([k,v])=>`<span>${esc(k)} · ${v.toLocaleString("fa-IR")}</span>`).join("")||"—"}</div></div>`}
-function reviewHTML(r){const fields=[["درس",r.course],["ترم",r.term],["منبع آموزش",r.source_category||r.source],["حضور",r.attendance_category||r.attendance],["منابع امتحان",r.exam_resources_category||r.exam_resources],["نمره‌دهی",r.grading_category||r.grading]].filter(x=>x[1]);return `<article class="review"><div class="rhead"><b>${esc(r.course||"نظر دانشجو")}</b><span class="rscore">${r.avg_score==null?"بدون امتیاز":r.avg_score.toLocaleString("fa-IR")+" / ۱۰"}</span></div><div class="kv">${fields.map(([k,v])=>`<div><b>${esc(k)}</b>${esc(v)}</div>`).join("")}</div>${r.notes?`<div class="note">${esc(r.notes)}</div>`:""}</article>`}
-
-function faDate(iso){
-  if(!iso)return "";
-  try{return new Intl.DateTimeFormat("fa-IR",{year:"numeric",month:"short",day:"numeric"}).format(new Date(iso+"T00:00:00"))}
-  catch{return iso}
+function faDate(iso){if(!iso)return"—";try{return new Intl.DateTimeFormat("fa-IR",{year:"numeric",month:"short",day:"numeric"}).format(new Date(iso+"T00:00:00"))}catch{return iso}}
+function latestDate(p){const xs=p.courses.map(x=>x.latest_evidence_date).filter(Boolean).sort();return xs.at(-1)||null}
+function totalReports(p){return p.review_coverage.structured_evidence_count||0}
+function hasRankable(p){return (p.review_coverage.cautiously_rankable_course_pair_count||0)>0}
+function scoreVisible(c){return (c.structured_report_count||0)>=2 && c.overall_observed_mean_0_5!=null}
+function scorePct(v){return Math.max(0,Math.min(100,(v||0)*20))}
+function scoreClass(v){return v==null?"":v>=4?"good":v>=3?"mid":"low"}
+function evidenceLabel(p){const n=totalReports(p);if(!p.review_coverage.has_any_public_evidence)return"هنوز داده‌ای ندارد";if(hasRankable(p))return"پشتوانه بهتر";if(n>=3)return"داده موجود، اما محدود/قدیمی";return"نمونه محدود"}
+function searchable(p){return [p.name_fa,p.name_en,p.academic_rank,p.faculty,p.department,...p.courses.map(c=>c.course)].filter(Boolean).join(" ").toLowerCase()}
+function init(){
+  const s=DATA.stats;
+  $("#mReviews").textContent=fa(s.professors_with_any_public_evidence);
+  $("#mProfessors").textContent=fa(s.professors);
+  $("#mFaculties").textContent=fa(s.faculties);
+  $("#mAvg").textContent=fa(s.department_units);
+  $("#mComplete").textContent=fa(s.current_professor_course_pairs);
+  $("#mCommunity").textContent=fa(s.cautiously_rankable_course_pairs);
+  fillSelect($("#faculty"),DATA.faculties,"همه دانشکده‌ها");
+  fillSelect($("#department"),DATA.department_labels,"همه گروه‌ها");
+  fillSelect($("#course"),DATA.courses,"همه درس‌ها");
+  renderReliable();render();applyTheme();applyHash();
 }
-function communitySentimentClass(v){return v==="مثبت"?"positive":v==="منفی"?"negative":v==="مختلط"?"mixed":""}
-function communityRank(e){
-  let x=0;
-  if(e.evidence_type==="تجربه مستقیم")x+=100;
-  if(e.confidence==="زیاد")x+=40; else if(e.confidence==="متوسط")x+=15;
-  if(e.text&&e.text.length>70)x+=10;
-  x+=(e.topics||[]).length*2;
-  const t=Date.parse((e.date||"")+"T00:00:00");if(Number.isFinite(t))x+=t/1e12;
-  return x;
+function renderReliable(){
+  const arr=[...DATA.professors].filter(hasRankable).sort((a,b)=>
+    b.review_coverage.cautiously_rankable_course_pair_count-a.review_coverage.cautiously_rankable_course_pair_count ||
+    totalReports(b)-totalReports(a) || a.name_fa.localeCompare(b.name_fa,"fa")
+  ).slice(0,4);
+  $("#reliableGrid").innerHTML=arr.map(p=>`<article class="reliable" data-open-id="${p.id}"><div class="reliable-top"><div><div class="reliable-name">${esc(p.name_fa)}</div><div class="reliable-faculty">${esc(p.faculty||"")}</div></div><div class="reliable-score">${fa(p.review_coverage.cautiously_rankable_course_pair_count)}</div></div><div class="reliable-meta">${fa(totalReports(p))} گزارش ساختاریافته • ${fa(p.review_coverage.cautiously_rankable_course_pair_count)} درس با پشتوانه بهتر</div></article>`).join("")||`<div class="empty">فعلاً رکوردی با guardrail انتخاب‌شده وجود ندارد.</div>`;
+  bindOpen();
 }
-function communityHTML(p){
-  const all=[...(p.community_experiences||[])];
-  if(!all.length)return "";
-  const sorted=[...all].sort((a,b)=>communityRank(b)-communityRank(a));
-  const direct=all.filter(e=>e.evidence_type==="تجربه مستقیم").length;
-  const positive=all.filter(e=>e.sentiment==="مثبت").length;
-  const high=all.filter(e=>e.confidence==="زیاد").length;
-  const topics={};all.forEach(e=>(e.topics||[]).forEach(t=>topics[t]=(topics[t]||0)+1));
-  const topicList=Object.entries(topics).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],"fa")).slice(0,6);
-  const cards=sorted.map((e,i)=>`<article class="community-card ${e.evidence_type==="تجربه مستقیم"?"direct":""}" data-community-extra="${i>=4?"1":"0"}" style="${i>=4?"display:none":""}">
-    <div class="community-card-head"><div class="community-card-tags">
-      <span class="community-badge ${communitySentimentClass(e.sentiment)}">${esc(e.sentiment||"نامشخص")}</span>
-      <span class="community-badge">${esc(e.evidence_type||"تجربه")}</span>
-      <span class="community-badge">اطمینان ${esc(e.confidence||"—")}</span>
-      ${e.course?`<span class="community-badge">${esc(e.course)}</span>`:""}
-    </div><span class="community-date">${faDate(e.date)}</span></div>
-    <p class="community-text">${esc(e.text||"")}</p>
-    ${e.context_question?`<div class="community-context">زمینه گفتگو: ${esc(e.context_question)}</div>`:""}
-  </article>`).join("");
-  return `<section class="community-section">
-    <div class="community-head"><h3>تجربه‌های گفت‌وگویی دانشجوها</h3><span>${all.length.toLocaleString("fa-IR")} تجربه پالایش‌شده</span></div>
-    <p class="community-note">این تجربه‌های متنی جدا از نظرسنجی عددی هستند و در میانگین امتیاز استاد محاسبه نشده‌اند.</p>
-    <div class="community-summary">
-      <div class="community-stat"><b>${all.length.toLocaleString("fa-IR")}</b><span>تجربه متنی</span></div>
-      <div class="community-stat"><b>${direct.toLocaleString("fa-IR")}</b><span>تجربه مستقیم</span></div>
-      <div class="community-stat"><b>${positive.toLocaleString("fa-IR")}</b><span>برداشت مثبت</span></div>
-      <div class="community-stat"><b>${high.toLocaleString("fa-IR")}</b><span>اطمینان زیاد</span></div>
-    </div>
-    ${topicList.length?`<div class="community-topics">${topicList.map(([t,n])=>`<span class="community-topic">${esc(t)} · ${n.toLocaleString("fa-IR")}</span>`).join("")}</div>`:""}
-    <div class="community-list">${cards}</div>
-    ${all.length>4?`<button id="communityMore" class="community-more">نمایش ${(all.length-4).toLocaleString("fa-IR")} تجربه دیگر</button>`:""}
-  </section>`;
+function getFiltered(){
+  const q=$("#q").value.trim().toLowerCase(),f=$("#faculty").value,d=$("#department").value,c=$("#course").value,sort=$("#sort").value;
+  let arr=DATA.professors.filter(p=>{
+    if(q&&!searchable(p).includes(q))return false;
+    if(f&&p.faculty!==f)return false;
+    if(d&&p.department!==d)return false;
+    if(c&&!p.courses.some(x=>x.course===c))return false;
+    if(savedOnly&&!saved.has(p.id))return false;
+    if(totalReports(p)<minEvidence)return false;
+    if(statusFilter==="evidence"&&!p.review_coverage.has_any_public_evidence)return false;
+    if(statusFilter==="rankable"&&!hasRankable(p))return false;
+    if(statusFilter==="none"&&p.review_coverage.has_any_public_evidence)return false;
+    return true;
+  });
+  if(sort==="rankable")arr.sort((a,b)=>b.review_coverage.cautiously_rankable_course_pair_count-a.review_coverage.cautiously_rankable_course_pair_count||totalReports(b)-totalReports(a));
+  else if(sort==="name")arr.sort((a,b)=>a.name_fa.localeCompare(b.name_fa,"fa"));
+  else arr.sort((a,b)=>totalReports(b)-totalReports(a)||b.review_coverage.course_pair_count-a.review_coverage.course_pair_count||a.name_fa.localeCompare(b.name_fa,"fa"));
+  return arr;
 }
-
-function openProfessor(name,updateHash=true){const p=DATA.professors.find(x=>x.name===name);if(!p)return;$("#dName").textContent=p.name;$("#dMeta").textContent=[p.faculties.join(" • "),p.departments.join("، ")].filter(Boolean).join(" — ");$("#drawerBody").innerHTML=`<div class="card-actions"><button id="dSave" class="mini-btn ${saved.has(p.name)?"on":""}">★ ${saved.has(p.name)?"ذخیره شده":"ذخیره استاد"}</button><button id="dCompare" class="mini-btn ${compare.includes(p.name)?"on":""}">⇄ افزودن به مقایسه</button><button id="dLink" class="mini-btn">⛓ پیوند مستقیم</button></div><div class="summary-grid"><div class="sum"><b>${p.avg_score==null?"—":p.avg_score.toLocaleString("fa-IR")}</b><span>میانگین از ۱۰</span></div><div class="sum"><b>${p.review_count.toLocaleString("fa-IR")}</b><span>تعداد نظر</span></div><div class="sum"><b>${p.complete_review_count.toLocaleString("fa-IR")}</b><span>نظر کامل ۶ شاخصی</span></div><div class="sum"><b>${p.courses.length.toLocaleString("fa-IR")}</b><span>درس ثبت‌شده</span></div></div><div class="dims">${dimHTML(p)}</div><div class="mixes">${mixHTML("نمره‌دهی",p.grading_mix)}${mixHTML("حضور و غیاب",p.attendance_mix)}</div>${communityHTML(p)}<h3 class="review-title">نظرهای ثبت‌شده</h3><div class="review-sub">${p.review_count.toLocaleString("fa-IR")} تجربه برای این استاد</div>${p.reviews.map(reviewHTML).join("")}`;$("#drawerBackdrop").classList.add("open");$("#drawer").classList.add("open");$("#drawer").setAttribute("aria-hidden","false");document.body.style.overflow="hidden";if(updateHash)history.replaceState(null,"",`#professor=${encodeURIComponent(name)}`);const communityMore=$("#communityMore");if(communityMore)communityMore.onclick=()=>{document.querySelectorAll('[data-community-extra="1"]').forEach(x=>x.style.display="block");communityMore.remove()};$("#dSave").onclick=()=>toggleSave(name);$("#dCompare").onclick=()=>toggleCompare(name);$("#dLink").onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$("#dLink").textContent="✓ کپی شد"}catch{prompt("پیوند را کپی کنید:",location.href)}}}
-function closeDrawer(){ $("#drawerBackdrop").classList.remove("open");$("#drawer").classList.remove("open");$("#drawer").setAttribute("aria-hidden","true");document.body.style.overflow="";if(location.hash.startsWith("#professor="))history.replaceState(null,"",location.pathname+location.search)}
-function compareNow(){if(compare.length<2)return;const ps=compare.map(n=>DATA.professors.find(p=>p.name===n)).filter(Boolean);const rows=[["میانگین کل",...ps.map(p=>p.avg_score)],["تعداد نظر",...ps.map(p=>p.review_count)],...Object.entries(dimLabels).map(([k,l])=>[l,...ps.map(p=>p.dimensions?.[k])])];$("#compareBody").innerHTML=`<div class="table-wrap"><table class="compare-table"><thead><tr><th>شاخص</th>${ps.map(p=>`<th>${esc(p.name)}</th>`).join("")}</tr></thead><tbody>${rows.map((r,idx)=>{const vals=r.slice(1).filter(v=>typeof v==="number");const max=vals.length?Math.max(...vals):null;return `<tr><td>${esc(r[0])}</td>${r.slice(1).map(v=>`<td class="${idx!==1&&v===max?"best":""}">${v==null?"—":Number(v).toLocaleString("fa-IR")}</td>`).join("")}</tr>`}).join("")}</tbody></table></div>`;$("#compareModal").classList.add("open")}
-function clearFilters(){$("#q").value="";$("#heroQ").value="";$("#faculty").value="";$("#department").value="";$("#course").value="";$("#sort").value="reviews";rate="all";minReviews=0;savedOnly=false;document.querySelectorAll(".chip").forEach(x=>x.classList.remove("active"));document.querySelector('[data-rate="all"]').classList.add("active");limit=30;render()}
-function setTheme(t){document.documentElement.dataset.theme=t;safeSet("ui_theme",t)}function applyTheme(){setTheme(safeGet("ui_theme","dark"))}function applyHash(){if(location.hash.startsWith("#professor=")){const n=decodeURIComponent(location.hash.slice(11));if(DATA.professors.some(p=>p.name===n))setTimeout(()=>openProfessor(n,false),0)}}
-$("#heroQ").oninput=e=>{$("#q").value=e.target.value;limit=30;render()};$("#heroQ").onfocus=()=>setTimeout(()=>document.querySelector(".filters-wrap")?.scrollIntoView({behavior:"smooth",block:"start"}),180);$("#q").oninput=e=>{$("#heroQ").value=e.target.value;limit=30;render()};["faculty","department","course","sort"].forEach(id=>$("#"+id).onchange=()=>{limit=30;render()});document.querySelectorAll("[data-rate]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-rate]").forEach(x=>x.classList.remove("active"));b.classList.add("active");rate=b.dataset.rate;limit=30;render()});document.querySelectorAll("[data-min]").forEach(b=>b.onclick=()=>{const v=Number(b.dataset.min);minReviews=minReviews===v?0:v;document.querySelectorAll("[data-min]").forEach(x=>x.classList.toggle("active",Number(x.dataset.min)===minReviews));limit=30;render()});$("#clear").onclick=clearFilters;$("#loadMore").onclick=()=>{limit+=30;render()};$("#savedToggle").onclick=()=>{savedOnly=!savedOnly;limit=30;render()};const savedCheck=$("#savedCheck");if(savedCheck)savedCheck.onchange=e=>{savedOnly=e.target.checked;limit=30;render()};$("#themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");$("#drawerClose").onclick=closeDrawer;$("#drawerBackdrop").onclick=closeDrawer;$("#compareGo").onclick=compareNow;$("#compareClose").onclick=()=>$("#compareModal").classList.remove("open");$("#compareModal").onclick=e=>{if(e.target===$("#compareModal"))$("#compareModal").classList.remove("open")};document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("#heroQ").focus()}if(e.key==="Escape"){if($("#compareModal").classList.contains("open"))$("#compareModal").classList.remove("open");else closeDrawer()}});window.addEventListener("hashchange",applyHash);init();
-
-})();
+function cardHTML(p){
+  const ev=totalReports(p),rankable=p.review_coverage.cautiously_rankable_course_pair_count||0,latest=latestDate(p);
+  return `<article class="card"><div class="card-main" data-open-id="${p.id}"><div class="card-head"><div class="person"><div class="name">${esc(p.name_fa)}</div><div class="faculty">${esc(p.faculty||"دانشکده نامشخص")}</div></div><div class="score-ring ${rankable?"good":ev>=3?"mid":""}" style="--p:${Math.min(100,ev*10)}"><div class="score-val">${fa(ev)}<small>گزارش</small></div></div></div><div class="badges"><span class="badge">${esc(p.academic_rank||"مرتبه نامشخص")}</span><span class="badge">${esc(p.department||"گروه نامشخص")}</span><span class="badge ${rankable?"strong":!p.review_coverage.has_any_public_evidence?"warn":""}">${esc(evidenceLabel(p))}</span></div><div class="courses">${esc(p.courses.slice(0,5).map(x=>x.course).join("، ")||"هنوز درس دارای بازخورد ثبت نشده")}</div><div class="signal"><div><label>درس با پشتوانه بهتر</label><span>${fa(rankable)}</span></div><div><label>آخرین شاهد</label><span>${faDate(latest)}</span></div></div></div><div class="card-foot"><div class="card-actions"><button class="mini-btn ${saved.has(p.id)?"on":""}" data-save-id="${p.id}">★ ذخیره</button><button class="mini-btn ${compare.includes(p.id)?"on":""}" data-compare-id="${p.id}">⇄ مقایسه</button></div><span class="details-link" data-open-id="${p.id}">جزئیات ←</span></div></article>`;
+}
+function bindOpen(){document.querySelectorAll("[data-open-id]").forEach(x=>x.onclick=()=>openProfessor(Number(x.dataset.openId)))}
+function bindActions(){
+  bindOpen();
+  document.querySelectorAll("[data-save-id]").forEach(x=>x.onclick=e=>{e.stopPropagation();toggleSave(Number(x.dataset.saveId))});
+  document.querySelectorAll("[data-compare-id]").forEach(x=>x.onclick=e=>{e.stopPropagation();toggleCompare(Number(x.dataset.compareId))});
+}
+function render(){
+  const arr=getFiltered();$("#resultCount").textContent=`${fa(arr.length)} نتیجه از ۷۴۳ استاد رسمی`;
+  $("#cards").innerHTML=arr.slice(0,limit).map(cardHTML).join("")||`<div class="empty">با این فیلترها نتیجه‌ای پیدا نشد.</div>`;
+  $("#loadMore").style.display=arr.length>limit?"block":"none";bindActions();
+  $("#savedToggle").classList.toggle("on",savedOnly);$("#savedToggle").textContent=savedOnly?"★ نمایش همه":"★ ذخیره‌شده‌ها";const sc=$("#savedCheck");if(sc)sc.checked=savedOnly;
+}
+function toggleSave(id){saved.has(id)?saved.delete(id):saved.add(id);saveLocal();render();if($("#drawer").classList.contains("open")&&Number($("#drawer").dataset.pid)===id)openProfessor(id,false)}
+function toggleCompare(id){if(compare.includes(id))compare=compare.filter(x=>x!==id);else if(compare.length<3)compare.push(id);else{alert("حداکثر ۳ استاد را هم‌زمان مقایسه کنید.");return}render();updateCompare()}
+function updateCompare(){const ps=compare.map(id=>DATA.professors.find(p=>p.id===id)).filter(Boolean);$("#compareNames").innerHTML=ps.map(p=>`<span class="ctag">${esc(p.name_fa)}</span>`).join("");$("#compareBar").classList.toggle("show",compare.length>0);$("#compareGo").disabled=compare.length<2}
+function dimHTML(c){return Object.entries(dimLabels).map(([k,l])=>{const d=c.dimensions?.[k]||{},v=d.sample_size>=2?d.observed_mean_0_5:null;return `<div class="dim"><div class="dim-top"><span>${l}<small style="opacity:.6"> · n=${fa(d.sample_size||0)}</small></span><b>${v==null?"—":v.toLocaleString("fa-IR",{maximumFractionDigits:2})}</b></div><div class="track"><i style="width:${v==null?0:scorePct(v)}%"></i></div></div>`}).join("")}
+function courseHTML(c){
+  const n=c.structured_report_count||0,v=scoreVisible(c)?c.overall_observed_mean_0_5:null,ok=c.ranking_eligible_under_proposed_policy;
+  return `<article class="review"><div class="rhead"><b>${esc(c.course||"درس")}</b><span class="rscore">${v==null?"داده عددی ناکافی":v.toLocaleString("fa-IR",{maximumFractionDigits:2})+" / ۵"}</span></div><div class="badges"><span class="badge ${ok?"strong":n<2?"warn":""}">${fa(n)} گزارش</span><span class="badge">آخرین شاهد: ${faDate(c.latest_evidence_date)}</span><span class="badge">${ok?"واجد guardrail مقایسه":"برای رتبه‌بندی کافی نیست"}</span></div>${n>=2?`<div class="dims">${dimHTML(c)}</div>`:""}<div class="note">${ok?"این درس حداقل ۳ گزارش ساختاریافته دارد و آخرین شاهد آن حداکثر ۳ سال قدمت دارد.":"امتیاز این درس برای رتبه‌بندی سراسری استفاده نمی‌شود؛ تعداد گزارش و تازگی را در تفسیر لحاظ کنید."}</div></article>`;
+}
+function openProfessor(id,push=true){
+  const p=DATA.professors.find(x=>x.id===id);if(!p)return;
+  $("#drawer").dataset.pid=id;$("#dName").textContent=p.name_fa;$("#dMeta").textContent=[p.academic_rank,p.faculty,p.department].filter(Boolean).join(" • ");
+  const courses=[...p.courses].sort((a,b)=>Number(b.ranking_eligible_under_proposed_policy)-Number(a.ranking_eligible_under_proposed_policy)||b.structured_report_count-a.structured_report_count||(b.latest_evidence_date||"").localeCompare(a.latest_evidence_date||""));
+  $("#drawerBody").innerHTML=`<div class="profile-top"><div class="profile-score"><b>${fa(totalReports(p))}</b><span>گزارش ساختاریافته</span></div><div class="profile-actions"><button class="mini-btn ${saved.has(p.id)?"on":""}" data-save-id="${p.id}">★ ذخیره</button><button class="mini-btn ${compare.includes(p.id)?"on":""}" data-compare-id="${p.id}">⇄ مقایسه</button></div></div><div class="callout" style="margin:16px 0"><b>امتیاز کلی استاد نمایش داده نمی‌شود.</b><br>امتیازها فقط در سطح هر درس و همراه با تعداد گزارش و تاریخ آخرین شاهد نمایش داده می‌شوند.</div><div class="badges"><span class="badge">${fa(p.review_coverage.course_pair_count)} درس دارای شاهد</span><span class="badge">${fa(p.review_coverage.cautiously_rankable_course_pair_count)} درس با پشتوانه بهتر</span><span class="badge">${fa(p.review_coverage.qualitative_chat_evidence_count)} شاهد متنی کیفی</span></div>${p.official_profile_url?`<p><a href="${esc(p.official_profile_url)}" target="_blank" rel="noopener">پروفایل رسمی دانشگاه ↗</a></p>`:""}<h3 style="margin-top:24px">دادهٔ استاد × درس</h3>${courses.length?courses.map(courseHTML).join(""):`<div class="empty">برای این عضو فعلی دانشگاه هنوز دادهٔ استاد×درس قابل‌استفاده ثبت نشده است.</div>`}`;
+  $("#drawer").classList.add("open");$("#drawerBackdrop").classList.add("show");$("#drawer").setAttribute("aria-hidden","false");bindActions();
+  if(push)history.replaceState(null,"",`#professor=${p.id}`);
+}
+function closeDrawer(){$("#drawer").classList.remove("open");$("#drawerBackdrop").classList.remove("show");$("#drawer").setAttribute("aria-hidden","true");if(location.hash.startsWith("#professor="))history.replaceState(null,"",location.pathname+location.search)}
+function compareHTML(p){const cs=[...p.courses].sort((a,b)=>Number(b.ranking_eligible_under_proposed_policy)-Number(a.ranking_eligible_under_proposed_policy)||b.structured_report_count-a.structured_report_count).slice(0,6);return `<section class="compare-col"><h3>${esc(p.name_fa)}</h3><p class="muted">${esc([p.academic_rank,p.faculty,p.department].filter(Boolean).join(" • "))}</p><div class="badges"><span class="badge">${fa(totalReports(p))} گزارش</span><span class="badge strong">${fa(p.review_coverage.cautiously_rankable_course_pair_count)} درس واجد guardrail</span></div><div style="margin-top:12px">${cs.map(c=>`<div class="mix"><h4>${esc(c.course)}</h4><div class="mix-tags"><span>${scoreVisible(c)?c.overall_observed_mean_0_5.toLocaleString("fa-IR",{maximumFractionDigits:2})+" / ۵":"امتیاز ناکافی"}</span><span>n=${fa(c.structured_report_count)}</span><span>${faDate(c.latest_evidence_date)}</span></div></div>`).join("")||"داده‌ای ثبت نشده"}</div></section>`}
+function showCompare(){const ps=compare.map(id=>DATA.professors.find(p=>p.id===id)).filter(Boolean);$("#compareBody").innerHTML=`<div class="compare-grid">${ps.map(compareHTML).join("")}</div><div class="callout" style="margin-top:18px">مقایسهٔ عددی فقط در سطح درس انجام می‌شود. برای مقایسهٔ واقعی دو استاد، درس مشترک، تعداد گزارش و تازگی شواهد را کنار هم ببینید.</div>`;$("#compareModal").classList.add("show")}
+function applyTheme(){const t=safeGet("ui_theme",document.documentElement.dataset.theme||"dark");document.documentElement.dataset.theme=t}
+function toggleTheme(){const t=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=t;safeSet("ui_theme",t)}
+function applyHash(){const m=location.hash.match(/^#professor=(\d+)$/);if(m)openProfessor(Number(m[1]),false)}
+function resetFilters(){statusFilter="all";minEvidence=0;savedOnly=false;limit=30;["#q","#faculty","#department","#course"].forEach(s=>$(s).value="");$("#sort").value="reviews";document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("active",x.dataset.status==="all"));render()}
+$("#q").oninput=()=>{limit=30;$("#heroQ").value=$("#q").value;render()};$("#heroQ").oninput=()=>{$("#q").value=$("#heroQ").value;limit=30;render()};
+["#faculty","#department","#course","#sort"].forEach(s=>$(s).onchange=()=>{limit=30;render()});
+$("#loadMore").onclick=()=>{limit+=30;render()};$("#clear").onclick=resetFilters;$("#savedToggle").onclick=()=>{savedOnly=!savedOnly;render()};$("#savedCheck").onchange=e=>{savedOnly=e.target.checked;render()};
+$("#themeBtn").onclick=toggleTheme;$("#drawerClose").onclick=closeDrawer;$("#drawerBackdrop").onclick=closeDrawer;$("#compareGo").onclick=showCompare;$("#compareClose").onclick=()=>$("#compareModal").classList.remove("show");
+$("#compareModal").onclick=e=>{if(e.target===$("#compareModal"))$("#compareModal").classList.remove("show")};
+document.querySelectorAll(".chip").forEach(x=>x.onclick=()=>{document.querySelectorAll(".chip").forEach(y=>y.classList.remove("active"));x.classList.add("active");statusFilter=x.dataset.status||"all";minEvidence=Number(x.dataset.min||0);limit=30;render()});
+document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();$("#heroQ").focus()}if(e.key==="Escape"){closeDrawer();$("#compareModal").classList.remove("show")}});
+window.addEventListener("hashchange",applyHash);
+init();
+})().catch(err=>{console.error(err);const el=document.querySelector("#cards");if(el)el.innerHTML=`<div class="empty">خطا در بارگذاری بانک داده. صفحه را دوباره باز کنید.</div>`;document.documentElement.classList.add("data-load-failed")});
