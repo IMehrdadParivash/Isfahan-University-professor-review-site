@@ -44,6 +44,64 @@
   -webkit-backdrop-filter:none !important;
 }
 
+/* Precision professor filters. */
+.precision-panel{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid var(--line,rgba(255,255,255,.1));
+}
+.precision-panel summary{
+  list-style:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  min-height:48px;
+  padding:8px 12px;
+  border-radius:14px;
+  cursor:pointer;
+  user-select:none;
+  background:rgba(255,255,255,.025);
+  border:1px solid var(--line,rgba(255,255,255,.08));
+}
+.precision-panel summary::-webkit-details-marker{display:none}
+.precision-panel summary span{display:flex;flex-direction:column;gap:2px}
+.precision-panel summary b{font-size:.94rem}
+.precision-panel summary small{font-size:.75rem;color:var(--muted,#8f929c);font-weight:400}
+.precision-panel summary i{
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  border-radius:9px;
+  font-style:normal;
+  font-size:1.15rem;
+  transition:transform .2s ease;
+  background:rgba(255,255,255,.045);
+}
+.precision-panel[open] summary i{transform:rotate(45deg)}
+.precision-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  padding:14px 0 2px;
+}
+.precision-note{
+  margin:10px 0 2px;
+  padding:10px 12px;
+  border-radius:12px;
+  color:var(--muted,#8f929c);
+  background:rgba(255,255,255,.025);
+  font-size:.77rem;
+  line-height:1.8;
+}
+.material-row{justify-content:flex-end}
+[data-theme="light"] .precision-panel summary,
+[data-theme="light"] .precision-note{
+  background:rgba(23,24,29,.025);
+}
+[data-theme="light"] .precision-panel summary i{background:rgba(23,24,29,.05)}
+
 /* Keep Professor Scout visible while the professor drawer is open. */
 #professorScoutMascot.with-drawer{
   left:auto !important;
@@ -57,7 +115,13 @@
   transform-origin:bottom right !important;
 }
 
+@media(max-width:950px){
+  .precision-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media(max-width:650px){
+  .precision-grid{grid-template-columns:1fr}
+  .precision-panel summary{padding:9px 10px}
+  .precision-panel summary small{font-size:.7rem}
   #professorScoutMascot.with-drawer{
     left:auto !important;
     right:8px !important;
