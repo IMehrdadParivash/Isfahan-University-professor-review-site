@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0e12">
-<meta name="description" content="راهنمای انتخاب استاد دانشگاه اصفهان — مبتنی بر roster رسمی ۷۴۳ نفره و شواهد استاد × درس">
+<meta name="description" content="امتیاز و بازخورد استادان دانشگاه اصفهان؛ جست‌وجو میان ۷۴۳ استاد رسمی و مشاهدهٔ امتیاز کلی هر استاد.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="fa_IR">
-<meta property="og:title" content="راهنمای انتخاب استاد | دانشگاه اصفهان">
-<meta property="og:description" content="جست‌وجوی ۷۴۳ استاد رسمی دانشگاه اصفهان و مقایسهٔ شواهد معتبر در سطح استاد × درس.">
+<meta property="og:title" content="امتیاز استادان | دانشگاه اصفهان">
+<meta property="og:description" content="جست‌وجوی استادان دانشگاه اصفهان و مشاهدهٔ امتیاز کلی و بازخوردهای ثبت‌شده برای هر استاد.">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="راهنمای انتخاب استاد | دانشگاه اصفهان">
-<meta name="twitter:description" content="فهرست رسمی استادان دانشگاه اصفهان؛ فیلتر دانشکده، گروه و درس با رعایت حریم خصوصی.">
-<title>راهنمای انتخاب استاد | دانشگاه اصفهان</title>
+<meta name="twitter:title" content="امتیاز استادان | دانشگاه اصفهان">
+<meta name="twitter:description" content="فهرست استادان دانشگاه اصفهان با امتیاز کلی، تعداد بازخورد و فیلتر دانشکده و گروه آموزشی.">
+<title>امتیاز استادان | دانشگاه اصفهان</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/avatar/loader-avatar.webp" as="image" type="image/webp">
 <link rel="stylesheet" href="assets/css/app.css">
@@ -38,7 +38,7 @@
   <div class="shell topbar-inner">
     <div class="brand">
       <div class="brandmark" aria-hidden="true"></div>
-      <div>راهنمای انتخاب استاد<small>دانشگاه اصفهان</small></div>
+      <div>امتیاز استادان<small>دانشگاه اصفهان</small></div>
     </div>
     <div class="top-actions">
       <button id="savedToggle" class="ghost hide-mobile" aria-pressed="false">★ ذخیره‌شده‌ها</button>
@@ -52,30 +52,30 @@
   <div class="shell">
     <div class="hero-frame">
       <div class="hero-nav">
-        <div class="mini-brand"><span class="status-dot"></span> روستر رسمی ۷۴۳ نفره + شواهد استاد × درس</div>
-        <div class="data-pill">مقیاس ۰ تا ۵ • رتبه‌بندی فقط با ≥۳ گزارش و شاهد ≤۳ سال</div>
+        <div class="mini-brand"><span class="status-dot"></span> امتیاز و بازخورد استادان دانشگاه اصفهان</div>
+        <div class="data-pill">امتیاز از ۵ • همراه با تعداد بازخورد</div>
       </div>
       <div class="hero-content">
-        <span class="kicker">انتخاب واحد با شواهد بیشتر</span>
-        <h1><span class="hero-main">استادت را</span> <em>هوشمندانه‌تر</em><br><span class="hero-main">انتخاب کن.</span></h1>
-        <p>هر ۷۴۳ عضو فعلی roster رسمی را جست‌وجو کن؛ بازخوردها و امتیازها فقط در سطح استاد × درس و همراه با تعداد گزارش و تازگی شاهد نمایش داده می‌شوند.</p>
+        <span class="kicker">استاد مناسب‌تر را پیدا کن</span>
+        <h1><span class="hero-main">استادت را</span> <em>ساده‌تر</em><br><span class="hero-main">ارزیابی کن.</span></h1>
+        <p>نام استاد را جست‌وجو کن و امتیاز کلی، تعداد بازخورد و شاخص‌های اصلی او را یک‌جا ببین؛ بدون پیچیدگی و تفکیک امتیاز بر اساس درس.</p>
         <div class="hero-search-shell">
           <div class="hero-search">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
-            <input id="heroQ" aria-label="جست‌وجوی نام استاد، درس یا گروه آموزشی" placeholder="نام استاد، درس یا گروه آموزشی…" autocomplete="off">
+            <input id="heroQ" aria-label="جست‌وجوی نام استاد یا گروه آموزشی" placeholder="نام استاد، دانشکده یا گروه آموزشی…" autocomplete="off">
             <span class="kbd">Ctrl K</span>
           </div>
         </div>
-        <div class="hero-chips"><span>جست‌وجوی سریع</span><span>فیلتر دانشکده و درس</span><span class="type-signature">تفکیک استاد × درس</span><span>ذخیره و مقایسه</span></div>
+        <div class="hero-chips"><span>امتیاز کلی استاد</span><span>تعداد بازخورد</span><span>فیلتر دانشکده و گروه</span><span>ذخیره استاد</span></div>
       </div>
       <div class="metrics-wrap">
         <div class="metrics">
-          <div class="metric"><b id="mReviews">—</b><span>استاد دارای شاهد</span></div>
-          <div class="metric"><b id="mProfessors">—</b><span>استاد رسمی فعلی</span></div>
+          <div class="metric"><b id="mReviews">—</b><span>استاد دارای بازخورد</span></div>
+          <div class="metric"><b id="mProfessors">—</b><span>استاد رسمی</span></div>
           <div class="metric"><b id="mFaculties">—</b><span>دانشکده</span></div>
-          <div class="metric"><b id="mAvg">—</b><span>واحد گروه آموزشی</span></div>
-          <div class="metric"><b id="mComplete">—</b><span>ترکیب استاد × درس</span></div>
-          <div class="metric"><b id="mCommunity">—</b><span>جفت واجد guardrail</span></div>
+          <div class="metric"><b id="mAvg">—</b><span>گروه آموزشی</span></div>
+          <div class="metric"><b id="mComplete">—</b><span>استاد دارای امتیاز</span></div>
+          <div class="metric"><b id="mCommunity">—</b><span>استاد با ۳+ بازخورد</span></div>
         </div>
       </div>
     </div>
@@ -85,8 +85,8 @@
 <section class="quick">
   <div class="shell">
     <div class="section-title">
-      <h2>دادهٔ کافی‌تر برای بررسی</h2>
-      <small>حداقل یک درس با ≥۳ گزارش ساختاریافته و شاهد حداکثر ۳ ساله</small>
+      <h2>استادان با امتیاز بالاتر</h2>
+      <small>نمایش استادانی که دست‌کم ۳ بازخورد قابل استفاده دارند</small>
     </div>
     <div id="reliableGrid" class="reliable-grid"></div>
   </div>
@@ -96,33 +96,19 @@
   <div class="shell">
     <div class="filters-wrap">
       <div class="filters">
-        <div class="filter-caption"><b>فیلترهای انتخاب استاد</b><span>برای محدود کردن نتایج از چند فیلتر هم‌زمان استفاده کنید</span></div>
+        <div class="filter-caption"><b>فیلتر استادان</b><span>سریع و ساده، بدون فیلترهای اضافه</span></div>
         <div class="filter-grid">
-          <label class="field field-search wide"><span class="field-label">جست‌وجو</span><input id="q" class="control" placeholder="نام استاد، درس یا گروه آموزشی…" autocomplete="off"></label>
+          <label class="field field-search wide"><span class="field-label">جست‌وجو</span><input id="q" class="control" placeholder="نام استاد، دانشکده یا گروه آموزشی…" autocomplete="off"></label>
           <label class="field field-select"><span class="field-label">دانشکده</span><select id="faculty" class="control"><option value="">همه دانشکده‌ها</option></select></label>
           <label class="field field-select"><span class="field-label">گروه آموزشی</span><select id="department" class="control"><option value="">همه گروه‌ها</option></select></label>
-          <label class="field field-select"><span class="field-label">درس</span><select id="course" class="control"><option value="">همه درس‌ها</option></select></label>
-          <label class="field field-select"><span class="field-label">مرتب‌سازی</span><select id="sort" class="control"><option value="reviews">بیشترین شواهد</option><option value="rankable">بیشترین درس قابل مقایسه</option><option value="name">نام استاد</option></select></label>
+          <label class="field field-select"><span class="field-label">مرتبهٔ علمی</span><select id="rank" class="control"><option value="">همهٔ مرتبه‌ها</option></select></label>
+          <label class="field field-select"><span class="field-label">مرتب‌سازی</span><select id="sort" class="control"><option value="rating">بالاترین امتیاز</option><option value="reviews">بیشترین بازخورد</option><option value="name">نام استاد</option></select></label>
         </div>
-        <details id="precisionFilters" class="precision-panel">
-          <summary><span><b>فیلترهای دقیق‌تر</b><small>مرتبه، تعداد گزارش، تازگی و شاخص‌های هر درس</small></span><i aria-hidden="true">+</i></summary>
-          <div class="precision-grid">
-            <label class="field field-select"><span class="field-label">مرتبهٔ علمی</span><select id="rank" class="control"><option value="">همهٔ مرتبه‌ها</option></select></label>
-            <label class="field field-select"><span class="field-label">حداقل گزارش</span><select id="minReports" class="control"><option value="">بدون محدودیت</option><option value="2">حداقل ۲ گزارش</option><option value="3">حداقل ۳ گزارش</option><option value="5">حداقل ۵ گزارش</option><option value="10">حداقل ۱۰ گزارش</option></select></label>
-            <label class="field field-select"><span class="field-label">تازگی شاهد</span><select id="freshness" class="control"><option value="">همهٔ تاریخ‌ها</option><option value="1">حداکثر ۱ سال</option><option value="2">حداکثر ۲ سال</option><option value="3">حداکثر ۳ سال</option><option value="5">حداکثر ۵ سال</option></select></label>
-            <label class="field field-select"><span class="field-label">حداقل امتیاز درس از ۵</span><select id="minRating" class="control"><option value="">بدون محدودیت</option><option value="2">حداقل ۲</option><option value="3">حداقل ۳</option><option value="3.5">حداقل ۳٫۵</option><option value="4">حداقل ۴</option><option value="4.5">حداقل ۴٫۵</option></select></label>
-            <label class="field field-select"><span class="field-label">شاخص تدریس</span><select id="dimension" class="control"><option value="">همهٔ شاخص‌ها</option><option value="teaching">انتقال مطالب</option><option value="coherence">پیوستگی تدریس</option><option value="knowledge">دانش عمومی</option><option value="management">مدیریت کلاس</option><option value="responsiveness">پاسخ‌گویی</option><option value="behavior">رفتار با دانشجو</option></select></label>
-            <label class="field field-select"><span class="field-label">حداقل امتیاز شاخص از ۵</span><select id="minDimension" class="control"><option value="">بدون محدودیت</option><option value="2">حداقل ۲</option><option value="3">حداقل ۳</option><option value="3.5">حداقل ۳٫۵</option><option value="4">حداقل ۴</option><option value="4.5">حداقل ۴٫۵</option></select></label>
-          </div>
-          <p class="precision-note">امتیاز و شاخص فقط برای ترکیب استاد × درس با دست‌کم ۲ گزارش مستقل بررسی می‌شوند. بدون انتخاب درس، کافی است یکی از درس‌های استاد با همهٔ شرط‌های انتخاب‌شده سازگار باشد.</p>
-        </details>
         <div class="material-row">
           <div class="chips">
             <button class="chip active" data-status="all">همه استادها</button>
-            <button class="chip" data-status="evidence">دارای داده</button>
-            <button class="chip" data-status="rankable">دارای درس قابل مقایسه</button>
-            <button class="chip" data-status="none">بدون داده</button>
-            <button class="chip" data-min="3">حداقل ۳ گزارش ساختاریافته</button>
+            <button class="chip" data-status="rated">دارای امتیاز</button>
+            <button class="chip" data-status="none">بدون امتیاز</button>
           </div>
           <div style="display:flex;align-items:center;gap:12px">
             <label class="checkline"><input id="savedCheck" type="checkbox"><span class="checkbox-box"></span><span>فقط استادهای ذخیره‌شده</span></label>
@@ -138,7 +124,7 @@
 </section>
 </main>
 
-<footer class="footer"><div class="shell"><b>راهنمای انتخاب استاد دانشگاه اصفهان</b> — اطلاعات ۷۴۳ عضو رسمی دانشگاه؛ امتیازها فقط برای هر درس، در مقیاس ۰ تا ۵ و با حفظ محرمانگی گزارش‌ها نمایش داده می‌شوند.</div></footer>
+<footer class="footer"><div class="shell"><b>امتیاز استادان دانشگاه اصفهان</b> — امتیاز کلی هر استاد از تجمیع بازخوردهای ثبت‌شده و در مقیاس ۰ تا ۵ محاسبه می‌شود.</div></footer>
 
 <div id="drawerBackdrop" class="drawer-backdrop"></div>
 <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="dName" aria-describedby="dMeta" aria-hidden="true" tabindex="-1">
@@ -148,18 +134,6 @@
   </div>
   <div id="drawerBody" class="drawer-body"></div>
 </aside>
-
-<div id="compareBar" class="comparebar">
-  <div id="compareNames" class="compare-names"></div>
-  <button id="compareGo" class="compare-go" disabled>مقایسه</button>
-</div>
-
-<div id="compareModal" class="modal-backdrop" aria-hidden="true">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="compareTitle" tabindex="-1">
-    <div class="modal-head"><h2 id="compareTitle">مقایسه اساتید</h2><button id="compareClose" class="close">بستن</button></div>
-    <div id="compareBody"></div>
-  </div>
-</div>
 
 <script src="assets/data/professors-01.js"></script>
 <script src="assets/data/professors-02.js"></script>
