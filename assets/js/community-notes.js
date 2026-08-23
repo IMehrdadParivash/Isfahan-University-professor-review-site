@@ -49,6 +49,15 @@
     [["مرضیه شماعی"],"mixed","medium","با وجود شنیده‌های منفی اولیه، یک تجربهٔ مستقیم فرصت‌های متعدد برای کسب نمره، احترام به نظر دانشجو و امتحان تستی قابل‌مدیریت را مثبت دانسته است. حساسیت به استفاده از گوشی نیز گزارش شده است."]
   ];
 
+  const FEEDBACK_BY_PROFESSOR_ID = Object.freeze({
+    "109": ["تجربه‌ام از درس دانش خانواده با استاد ربانی خیلی خوب بود."],
+    "122": ["از نمره‌دهی رضایت نداشتم و حضور منظم در کلاس لازم بود."],
+    "124": ["برای درس انقلاب، تجربه‌ام از نمره‌دهی استاد عزیزخانی خوب بود."],
+    "130": ["به نظرم کمی سخت‌گیر هستند.", "تجربه‌ام از این استاد خیلی خوب بود."],
+    "131": ["تجربه‌ام از این استاد خیلی خوب بود."],
+    "313": ["تجربه‌ام از استاد ترکی خیلی خوب بود."]
+  });
+
   const NOTES = RAW.map(([aliases, direction, confidence, summary]) => ({ aliases, direction, confidence, summary }));
   const directionLabel = { positive:"عمدتاً مثبت", mixed:"ترکیبی", negative:"عمدتاً منفی" };
   const confidenceLabel = { high:"بالاتر", medium:"متوسط", low:"محدود" };
@@ -83,20 +92,25 @@
     const name = document.querySelector("#dName")?.textContent?.trim();
     if (!drawer || !body || !name || !drawer.classList.contains("open")) return;
 
-    const key = normalize(name);
+    const professorId = drawer.dataset.pid || "";
+    const feedback = FEEDBACK_BY_PROFESSOR_ID[professorId] || [];
+    const key = `${normalize(name)}:${professorId}`;
     const existing = body.querySelector("[data-community-summary]");
     const note = noteFor(name);
-    if (!note) {
+    if (!note && !feedback.length) {
       if (existing) existing.remove();
       return;
     }
     if (existing?.dataset.communityFor === key) return;
     if (existing) existing.remove();
 
+    const summaryHTML = note ? `<h3 class="course-heading">خلاصهٔ تجربه‌های دانشجویی</h3><div class="callout profile-callout"><p>${escapeHTML(note.summary)}</p><div class="badges"><span class="badge">جهت کلی: ${escapeHTML(directionLabel[note.direction] || "—")}</span><span class="badge">پشتوانهٔ کیفی: ${escapeHTML(confidenceLabel[note.confidence] || "—")}</span></div><small>این خلاصه از پیام‌های ارسالی استخراج شده، نقل‌قول مستقیم نیست و روی امتیاز عددی استاد اثر نمی‌گذارد.</small></div>` : "";
+    const feedbackHTML = feedback.length ? `<section class="community-section"><div class="community-head"><h3>متن بازخوردهای دانشجوها</h3><span class="community-badge">${feedback.length.toLocaleString("fa-IR")} مورد</span></div><div class="community-list">${feedback.map(text => `<article class="community-card"><div class="community-card-head"><span class="community-badge">مضمون بازخورد</span></div><div class="community-text">${escapeHTML(text)}</div></article>`).join("")}</div><div class="community-note">بازخوردها ناشناس و برای حفظ حریم خصوصی به‌صورت کوتاه و پالایش‌شده بازنویسی شده‌اند؛ نقل‌قول خام نیستند و در محاسبهٔ امتیاز عددی استاد دخالت ندارند.</div></section>` : "";
+
     const section = document.createElement("section");
     section.dataset.communitySummary = "true";
     section.dataset.communityFor = key;
-    section.innerHTML = `<h3 class="course-heading">خلاصهٔ تجربه‌های دانشجویی</h3><div class="callout profile-callout"><p>${escapeHTML(note.summary)}</p><div class="badges"><span class="badge">جهت کلی: ${escapeHTML(directionLabel[note.direction] || "—")}</span><span class="badge">پشتوانهٔ کیفی: ${escapeHTML(confidenceLabel[note.confidence] || "—")}</span></div><small>این خلاصه از پیام‌های ارسالی استخراج شده، نقل‌قول مستقیم نیست و روی امتیاز عددی استاد اثر نمی‌گذارد.</small></div>`;
+    section.innerHTML = summaryHTML + feedbackHTML;
     body.append(section);
   }
 
