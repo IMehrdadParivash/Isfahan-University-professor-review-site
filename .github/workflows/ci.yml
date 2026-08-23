@@ -12,11 +12,11 @@ permissions:
 
 jobs:
   data-integrity:
-    name: Public data privacy, roster and executable hashes
+    name: Public data privacy, roster and runtime integrity
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Reject singleton evidence, PII, invalid URLs and incorrect hashes
+      - name: Reject singleton evidence, PII, invalid URLs and integrity drift
         run: python tools/validate-data.py
       - name: Prove privacy validator rejects adversarial disclosure and tampering
         run: python tools/test-data-privacy.py
@@ -42,13 +42,16 @@ jobs:
           required = [
               'assets/avatar/loader-avatar.webp',
               'assets/js/loader.js',
+              'assets/js/community-notes.js',
               'assets/css/fonts.css',
               'assets/css/app.css',
               'assets/js/app.js',
           ]
           for rel in required:
-              if rel not in html:
+              if rel not in html and rel != 'assets/js/community-notes.js':
                   failures.append(f'index.html does not reference {rel}')
+              if rel == 'assets/js/community-notes.js' and rel not in html:
+                  failures.append('index.html does not load anonymized qualitative summaries')
               if not (root / rel).is_file():
                   failures.append(f'missing runtime file: {rel}')
 
@@ -74,9 +77,16 @@ jobs:
 
           scripts = re.findall(r'<script\s+src=["\']([^"\']+)["\']', html, flags=re.I)
           expected_scripts = [f'assets/data/professors-{index:02}.js' for index in range(1, 7)]
-          expected_scripts += ['assets/js/app.js', 'assets/js/loader.js']
+          expected_scripts += ['assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/loader.js']
           if scripts != expected_scripts:
-              failures.append(f'index.html must load only verified data and the two runtime scripts: {scripts}')
+              failures.append(f'index.html runtime script allowlist drifted: {scripts}')
+          if 'id="course"' in html or 'id="compareModal"' in html or 'precisionFilters' in html:
+              failures.append('removed professor-by-course controls returned to the public HTML')
+
+          notes = (root / 'assets/js/community-notes.js').read_text(encoding='utf-8')
+          if re.search(r'\bin reply to\b', notes, flags=re.I) or re.search(r'\[\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}', notes):
+              failures.append('raw chat markers or timestamps leaked into qualitative summaries')
+
           obsolete = list(root.glob('V16*')) + list((root / 'assets/js').glob('data-*.js'))
           if obsolete:
               failures.append('obsolete versioned files in public repository: ' + ', '.join(str(path) for path in obsolete))
@@ -88,15 +98,19 @@ jobs:
           if failures:
               print('\n'.join('FAIL: ' + issue for issue in failures))
               sys.exit(1)
-          print('Static/offline, security-header and font-license checks passed.')
+          print('V18 static/offline, privacy-summary, security-header and font-license checks passed.')
 
       - name: Check all release and browser tooling syntax
-        run: python -m compileall -q tools
+        run: |
+          python -m compileall -q tools
+          node --check assets/js/app.js
+          node --check assets/js/community-notes.js
+          node --check assets/js/loader.js
 
-      - name: Verify active executable files and real manifest hashes
+      - name: Verify active data hashes and runtime Git blobs
         run: python tools/verify-assets.py
 
-      - name: Exercise real data, filters, Persian search and dialogs in Node DOM
+      - name: Exercise professor-level data and runtime invariants in Node
         run: node tools/test-ui-runtime.cjs
 
   release-safety:
@@ -128,9 +142,9 @@ jobs:
         run: python -m pip install --disable-pip-version-check selenium
       - name: Confirm Chrome is available on runner
         run: google-chrome --version
-      - name: Exercise the full static runtime through file://
+      - name: Exercise the full static professor-level runtime through file://
         run: python tools/test-browser.py
-      - name: Check actual visible overlays, advanced filters and mobile layout
+      - name: Check actual drawer visibility, keyboard focus and mobile layout
         run: python tools/test-browser-ui.py
       - name: Capture website QA screenshots
         if: success()
