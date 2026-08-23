@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0e12">
+<meta name="description" content="راهنمای انتخاب استاد دانشگاه اصفهان — مبتنی بر roster رسمی ۷۴۳ نفره و شواهد استاد × درس">
+<title>راهنمای انتخاب استاد | دانشگاه اصفهان</title>
+<link rel="preload" href="assets/avatar/loader-avatar.webp" as="image" type="image/webp">
+<script src="assets/js/style-01.js"></script>
+<script src="assets/js/style-02.js"></script>
+<link rel="stylesheet" href="assets/css/fonts.css">
+<link rel="stylesheet" href="assets/css/ui-hotfix.css">
+</head>
+<body>
+<div id="storyLoader" aria-hidden="true">
+  <div class="story-stage">
+    <div class="story-scene">
+      <img class="story-avatar" alt="" src="assets/avatar/loader-avatar.webp" width="240" height="213" decoding="async">
+      <div class="story-terminal">
+        <div class="story-term-head"><i></i><i></i><i></i></div>
+        <div class="story-term-body"><div class="story-prompt">&gt; build Professor Scout</div><div class="story-code"><i></i><i></i><i></i><i></i></div></div>
+      </div>
+      <div class="story-ai"><b></b><span>Human idea → AI execution → Website</span></div>
+      <div class="story-build"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="story-progress"></div>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="brand">
+      <div class="brandmark" aria-hidden="true"></div>
+      <div>راهنمای انتخاب استاد<small>دانشگاه اصفهان</small></div>
+    </div>
+    <div class="top-actions">
+      <button id="savedToggle" class="ghost hide-mobile" style="display:none">★ ذخیره‌شده‌ها</button>
+      <button id="themeBtn" class="ghost" title="تغییر پوسته">◐</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="shell">
+    <div class="hero-frame">
+      <div class="hero-nav">
+        <div class="mini-brand"><span class="status-dot"></span> روستر رسمی ۷۴۳ نفره + شواهد استاد × درس</div>
+        <div class="data-pill">مقیاس ۰ تا ۵ • رتبه‌بندی فقط با ≥۳ گزارش و شاهد ≤۳ سال</div>
+      </div>
+      <div class="hero-content">
+        <span class="kicker">انتخاب واحد با شواهد بیشتر</span>
+        <h1><span class="hero-main">استادت را</span> <em>هوشمندانه‌تر</em><br><span class="hero-main">انتخاب کن.</span></h1>
+        <p>هر ۷۴۳ عضو فعلی roster رسمی را جست‌وجو کن؛ بازخوردها و امتیازها فقط در سطح استاد × درس و همراه با تعداد گزارش و تازگی شاهد نمایش داده می‌شوند.</p>
+        <div class="hero-search-shell">
+          <div class="hero-search">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+            <input id="heroQ" placeholder="نام استاد، درس یا گروه آموزشی…" autocomplete="off">
+            <span class="kbd">Ctrl K</span>
+          </div>
+        </div>
+        <div class="hero-chips"><span>جست‌وجوی سریع</span><span>فیلتر دانشکده و درس</span><span class="type-signature">تفکیک استاد × درس</span><span>ذخیره و مقایسه</span></div>
+      </div>
+      <div class="metrics-wrap">
+        <div class="metrics">
+          <div class="metric"><b id="mReviews">—</b><span>استاد دارای شاهد</span></div>
+          <div class="metric"><b id="mProfessors">—</b><span>استاد رسمی فعلی</span></div>
+          <div class="metric"><b id="mFaculties">—</b><span>دانشکده</span></div>
+          <div class="metric"><b id="mAvg">—</b><span>واحد گروه آموزشی</span></div>
+          <div class="metric"><b id="mComplete">—</b><span>ترکیب استاد × درس</span></div>
+          <div class="metric"><b id="mCommunity">—</b><span>جفت واجد guardrail</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="quick">
+  <div class="shell">
+    <div class="section-title">
+      <h2>دادهٔ کافی‌تر برای بررسی</h2>
+      <small>حداقل یک درس با ≥۳ گزارش ساختاریافته و شاهد حداکثر ۳ ساله</small>
+    </div>
+    <div id="reliableGrid" class="reliable-grid"></div>
+  </div>
+</section>
+
+<section>
+  <div class="shell">
+    <div class="filters-wrap">
+      <div class="filters">
+        <div class="filter-caption"><b>فیلترهای انتخاب استاد</b><span>برای محدود کردن نتایج از چند فیلتر هم‌زمان استفاده کنید</span></div>
+        <div class="filter-grid">
+          <label class="field field-search wide"><span class="field-label">جست‌وجو</span><input id="q" class="control" placeholder="نام استاد، درس، نام جایگزین یا گروه…"></label>
+          <label class="field field-select"><span class="field-label">دانشکده</span><select id="faculty" class="control"><option value="">همه دانشکده‌ها</option></select></label>
+          <label class="field field-select"><span class="field-label">گروه آموزشی</span><select id="department" class="control"><option value="">همه گروه‌ها</option></select></label>
+          <label class="field field-select"><span class="field-label">درس</span><select id="course" class="control"><option value="">همه درس‌ها</option></select></label>
+          <label class="field field-select"><span class="field-label">مرتب‌سازی</span><select id="sort" class="control"><option value="reviews">بیشترین شواهد</option><option value="rankable">بیشترین درس قابل مقایسه</option><option value="name">نام استاد</option></select></label>
+        </div>
+        <div class="material-row">
+          <div class="chips">
+            <button class="chip active" data-status="all">همه استادها</button>
+            <button class="chip" data-status="evidence">دارای داده</button>
+            <button class="chip" data-status="rankable">دارای درس قابل مقایسه</button>
+            <button class="chip" data-status="none">بدون داده</button>
+            <button class="chip" data-min="3">حداقل ۳ گزارش ساختاریافته</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <label class="checkline"><input id="savedCheck" type="checkbox"><span class="checkbox-box"></span><span>فقط استادهای ذخیره‌شده</span></label>
+            <button id="clear" class="clear">پاک کردن فیلترها</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="results-head"><h2>اساتید</h2><div id="resultCount" class="result-count"></div></div>
+    <div id="cards" class="cards"></div>
+    <button id="loadMore" class="loadmore">نمایش موارد بیشتر</button>
+  </div>
+</section>
+</main>
+
+<footer class="footer"><div class="shell"><b>راهنمای انتخاب استاد دانشگاه اصفهان · V17 Data Integrity</b> — فهرست اصلی دقیقاً ۷۴۳ عضو roster رسمی ۲۲ اوت ۲۰۲۶ است. فرم خام ۰–۱۰ به ۰–۵ نرمال شده؛ امتیاز کلی استاد نمایش داده نمی‌شود و legacy Bayesian score در رتبه‌بندی استفاده نمی‌شود.</div></footer>
+
+<div id="drawerBackdrop" class="drawer-backdrop"></div>
+<aside id="drawer" class="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <div class="drawer-title"><h2 id="dName"></h2><p id="dMeta"></p></div>
+    <button id="drawerClose" class="close">بستن</button>
+  </div>
+  <div id="drawerBody" class="drawer-body"></div>
+</aside>
+
+<div id="compareBar" class="comparebar">
+  <div id="compareNames" class="compare-names"></div>
+  <button id="compareGo" class="compare-go" disabled>مقایسه</button>
+</div>
+
+<div id="compareModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head"><h2>مقایسه اساتید</h2><button id="compareClose" class="close">بستن</button></div>
+    <div id="compareBody"></div>
+  </div>
+</div>
+
+<script src="assets/js/data-v17-01.js"></script>
+<script src="assets/js/data-v17-02.js"></script>
+<script src="assets/js/data-v17-03.js"></script>
+<script src="assets/js/data-v17-04.js"></script>
+<script src="assets/js/data-v17-05.js"></script>
+<script src="assets/js/data-v17-06.js"></script>
+<script src="assets/js/app-v17.js"></script>
+<script src="assets/avatar/avatar-motion.js"></script>
+<script src="assets/js/ui-hotfix.js"></script>
+</body>
+</html>
