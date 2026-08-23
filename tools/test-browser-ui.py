@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Visible-overlay, keyboard, theme and mobile regressions for the V17 UI."""
+"""Visible drawer, keyboard, theme and mobile regressions for the V18 UI."""
 from pathlib import Path
 import shutil
 import sys
@@ -31,15 +31,9 @@ def display_info(driver, element):
 def visibly_open(driver, element):
     state = display_info(driver, element)
     return (
-        state["display"] != "none"
-        and state["visibility"] != "hidden"
-        and state["opacity"] > 0
-        and state["width"] > 0
-        and state["height"] > 0
-        and state["right"] > 0
-        and state["left"] < state["viewportWidth"]
-        and state["bottom"] > 0
-        and state["top"] < state["viewportHeight"]
+        state["display"] != "none" and state["visibility"] != "hidden" and state["opacity"] > 0
+        and state["width"] > 0 and state["height"] > 0 and state["right"] > 0
+        and state["left"] < state["viewportWidth"] and state["bottom"] > 0 and state["top"] < state["viewportHeight"]
     )
 
 
@@ -62,6 +56,8 @@ def main():
         wait.until(lambda browser: not visibly_open(browser, browser.find_element(By.ID, "storyLoader")))
         require(driver.find_element(By.TAG_NAME, "html").get_attribute("lang") == "fa", "document language is not Persian")
         require(driver.find_element(By.TAG_NAME, "html").get_attribute("dir") == "rtl", "document direction is not RTL")
+        require(not driver.find_elements(By.ID, "compareModal"), "removed comparison modal still exists")
+        require(not driver.find_elements(By.ID, "course"), "removed course filter still exists")
 
         position = driver.execute_script("return getComputedStyle(document.querySelector('.filters-wrap')).position")
         require(position != "sticky", f"filter panel is still sticky: {position}")
@@ -84,6 +80,7 @@ def main():
         require(drawer.get_attribute("role") == "dialog" and drawer.get_attribute("aria-modal") == "true", "drawer lacks accessible dialog semantics")
         require(driver.execute_script("return document.activeElement.id") == "drawerClose", "drawer did not receive managed focus")
         require(display_info(driver, backdrop)["pointer"] != "none", "drawer backdrop is not clickable")
+        require("دادهٔ استاد × درس" not in driver.find_element(By.ID, "drawerBody").text, "old course-grain drawer copy is visible")
         require(not driver.find_elements(By.ID, "professorScoutMascot"), "persistent mascot exists while drawer is open")
 
         driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
@@ -95,36 +92,17 @@ def main():
         driver.execute_script("arguments[0].click()", backdrop)
         wait.until(lambda browser: drawer.get_attribute("aria-hidden") == "true")
 
-        compare_buttons = driver.find_elements(By.CSS_SELECTOR, "#cards [data-compare-id]")
-        driver.execute_script("arguments[0].click()", compare_buttons[0])
-        compare_buttons = driver.find_elements(By.CSS_SELECTOR, "#cards [data-compare-id]")
-        driver.execute_script("arguments[0].click()", compare_buttons[1])
-        compare_button = driver.find_element(By.ID, "compareGo")
-        wait.until(lambda browser: compare_button.is_enabled())
-        driver.execute_script("arguments[0].focus();arguments[0].click()", compare_button)
-        modal = driver.find_element(By.ID, "compareModal")
-        wait.until(lambda browser: visibly_open(browser, modal))
-        dialog = driver.find_element(By.CSS_SELECTOR, "#compareModal .modal")
-        require(dialog.get_attribute("role") == "dialog" and dialog.get_attribute("aria-modal") == "true", "comparison lacks accessible dialog semantics")
-        require(driver.execute_script("return document.activeElement.id") == "compareClose", "comparison did not receive managed focus")
-        style = display_info(driver, modal)
-        require(style["display"] in ("grid", "flex", "block") and style["opacity"] > 0, f"comparison overlay is not visibly rendered: {style}")
+        # Keyboard shortcut must focus the global professor search.
+        driver.find_element(By.TAG_NAME, "body").send_keys(Keys.CONTROL, "k")
+        require(driver.execute_script("return document.activeElement.id") == "heroQ", "Ctrl+K did not focus professor search")
 
         driver.set_window_size(390, 844)
         wait.until(lambda browser: browser.execute_script("return innerWidth") <= 390)
-        rect = display_info(driver, dialog)
-        require(rect["left"] >= -1 and rect["right"] <= rect["viewportWidth"] + 1, f"mobile comparison extends beyond viewport: {rect}")
-        overflow = driver.execute_script("return document.documentElement.scrollWidth-document.documentElement.clientWidth")
-        require(overflow <= 4, f"mobile horizontal overflow with comparison open: {overflow}px")
-        driver.execute_script("arguments[0].dispatchEvent(new MouseEvent('click',{bubbles:true}))", modal)
-        wait.until(lambda browser: modal.get_attribute("aria-hidden") == "true")
-
         opener = driver.find_element(By.CSS_SELECTOR, "#cards [data-open-id]")
         driver.execute_script("arguments[0].click()", opener)
         wait.until(lambda browser: visibly_open(browser, drawer))
         wait.until(lambda browser: (
-            lambda state: state["left"] >= -1
-            and state["right"] <= state["viewportWidth"] + 1
+            lambda state: state["left"] >= -1 and state["right"] <= state["viewportWidth"] + 1
             and state["width"] <= state["viewportWidth"] + 1
         )(display_info(browser, drawer)))
         rect = display_info(driver, drawer)
@@ -132,7 +110,12 @@ def main():
         overflow = driver.execute_script("return document.documentElement.scrollWidth-document.documentElement.clientWidth")
         require(overflow <= 4, f"mobile horizontal overflow with professor drawer open: {overflow}px")
 
-        print("V17 visible UI regressions passed: RTL, themes, computed overlay rendering, Escape/outside-click, focus and mobile dialogs.")
+        driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+        wait.until(lambda browser: drawer.get_attribute("aria-hidden") == "true")
+        overflow = driver.execute_script("return document.documentElement.scrollWidth-document.documentElement.clientWidth")
+        require(overflow <= 4, f"mobile horizontal overflow after drawer close: {overflow}px")
+
+        print("V18 visible UI regressions passed: RTL, theme, drawer rendering, Escape/outside-click, focus, Ctrl+K and mobile layout.")
         return 0
     finally:
         driver.quit()
