@@ -45,6 +45,8 @@ jobs:
               'assets/css/fonts.css',
               'assets/css/app.css',
               'assets/js/app.js',
+              'assets/js/community-notes.js',
+              'assets/js/feedback-texts.js',
           ]
           for rel in required:
               if rel not in html:
@@ -74,9 +76,14 @@ jobs:
 
           scripts = re.findall(r'<script\s+src=["\']([^"\']+)["\']', html, flags=re.I)
           expected_scripts = [f'assets/data/professors-{index:02}.js' for index in range(1, 7)]
-          expected_scripts += ['assets/js/app.js', 'assets/js/loader.js']
+          expected_scripts += [
+              'assets/js/app.js',
+              'assets/js/community-notes.js',
+              'assets/js/feedback-texts.js',
+              'assets/js/loader.js',
+          ]
           if scripts != expected_scripts:
-              failures.append(f'index.html must load only verified data and the two runtime scripts: {scripts}')
+              failures.append(f'index.html must load only verified data and runtime scripts: {scripts}')
           obsolete = list(root.glob('V16*')) + list((root / 'assets/js').glob('data-*.js'))
           if obsolete:
               failures.append('obsolete versioned files in public repository: ' + ', '.join(str(path) for path in obsolete))
