@@ -131,23 +131,24 @@ async function __loadData() {
     if (valid.includes(existing)) element.value = existing;
   }
 
-  const reports = professor => Number(professor.review_coverage.structured_evidence_count) || 0;
-
   function validScore(value) {
     return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 5;
   }
 
-  function professorRating(professor) {
+  function professorStats(professor) {
     let weightedTotal = 0;
-    let weight = 0;
+    let sampleSize = 0;
     for (const course of professor.courses) {
       const count = Number(course.structured_report_count) || 0;
       if (count <= 0 || !validScore(course.overall_observed_mean_0_5)) continue;
       weightedTotal += course.overall_observed_mean_0_5 * count;
-      weight += count;
+      sampleSize += count;
     }
-    return weight ? weightedTotal / weight : null;
+    return { score: sampleSize ? weightedTotal / sampleSize : null, sampleSize };
   }
+
+  const professorRating = professor => professorStats(professor).score;
+  const reports = professor => professorStats(professor).sampleSize;
 
   function professorDimension(professor, dimension) {
     let weightedTotal = 0;
@@ -172,8 +173,7 @@ async function __loadData() {
       professor.name_fa,
       professor.academic_rank,
       professor.faculty,
-      professor.department,
-      ...professor.courses.map(course => course.course)
+      professor.department
     ].join(" "));
   }
 
@@ -234,7 +234,7 @@ async function __loadData() {
   function cardHTML(professor) {
     const score = professorRating(professor);
     const count = reports(professor);
-    return `<article class="card"><div class="card-main" role="button" tabindex="0" data-open-id="${professor.id}" aria-label="مشاهدهٔ جزئیات ${escapeHTML(professor.name_fa)}"><div class="card-head"><div class="person"><div class="name">${escapeHTML(professor.name_fa)}</div><div class="faculty">${escapeHTML(professor.faculty || "دانشکده نامشخص")}</div></div><div class="score-ring ${scoreClass(score)}" style="--p:${score === null ? 0 : Math.max(0, Math.min(100, score * 20))}"><div class="score-val">${formatScore(score)}<small>${score === null ? "بدون امتیاز" : "از ۵"}</small></div></div></div><div class="badges"><span class="badge">${escapeHTML(professor.academic_rank || "مرتبه نامشخص")}</span><span class="badge">${escapeHTML(professor.department || "گروه نامشخص")}</span></div><div class="courses">${score === null ? "هنوز امتیازی برای این استاد ثبت نشده است." : "امتیاز کلی بر اساس بازخوردهای ثبت‌شده برای این استاد"}</div><div class="signal"><div><span class="signal-label">بازخورد</span><span>${fa(count)}</span></div><div><span class="signal-label">آخرین بازخورد</span><span>${formatDate(latestDate(professor))}</span></div></div></div><div class="card-foot"><div class="card-actions"><button class="mini-btn ${saved.has(professor.id) ? "on" : ""}" data-save-id="${professor.id}" aria-pressed="${saved.has(professor.id)}">★ ذخیره</button></div><button class="details-link" data-open-id="${professor.id}">جزئیات ←</button></div></article>`;
+    return `<article class="card"><div class="card-main" role="button" tabindex="0" data-open-id="${professor.id}" aria-label="مشاهدهٔ جزئیات ${escapeHTML(professor.name_fa)}"><div class="card-head"><div class="person"><div class="name">${escapeHTML(professor.name_fa)}</div><div class="faculty">${escapeHTML(professor.faculty || "دانشکده نامشخص")}</div></div><div class="score-ring ${scoreClass(score)}" style="--p:${score === null ? 0 : Math.max(0, Math.min(100, score * 20))}"><div class="score-val">${formatScore(score)}<small>${score === null ? "بدون امتیاز" : "از ۵"}</small></div></div></div><div class="badges"><span class="badge">${escapeHTML(professor.academic_rank || "مرتبه نامشخص")}</span><span class="badge">${escapeHTML(professor.department || "گروه نامشخص")}</span></div><div class="courses">${score === null ? "هنوز امتیازی برای این استاد ثبت نشده است." : "امتیاز کلی بر اساس بازخوردهای قابل‌امتیازدهی این استاد"}</div><div class="signal"><div><span class="signal-label">بازخورد مؤثر در امتیاز</span><span>${fa(count)}</span></div><div><span class="signal-label">آخرین بازخورد عددی</span><span>${formatDate(latestDate(professor))}</span></div></div></div><div class="card-foot"><div class="card-actions"><button class="mini-btn ${saved.has(professor.id) ? "on" : ""}" data-save-id="${professor.id}" aria-pressed="${saved.has(professor.id)}">★ ذخیره</button></div><button class="details-link" data-open-id="${professor.id}">جزئیات ←</button></div></article>`;
   }
 
   function bindOpen() {
@@ -283,8 +283,8 @@ async function __loadData() {
 
     $("#reliableGrid").innerHTML = selected.map(professor => {
       const score = professorRating(professor);
-      return `<article class="reliable" role="button" tabindex="0" data-open-id="${professor.id}" aria-label="مشاهدهٔ جزئیات ${escapeHTML(professor.name_fa)}"><div class="reliable-top"><div><div class="reliable-name">${escapeHTML(professor.name_fa)}</div><div class="reliable-faculty">${escapeHTML(professor.faculty || "")}</div></div><div class="reliable-score">${formatScore(score)}</div></div><div class="reliable-meta">امتیاز از ۵ • ${fa(reports(professor))} بازخورد</div></article>`;
-    }).join("") || '<div class="empty">فعلاً استادی با حداقل ۳ بازخورد و امتیاز قابل نمایش وجود ندارد.</div>';
+      return `<article class="reliable" role="button" tabindex="0" data-open-id="${professor.id}" aria-label="مشاهدهٔ جزئیات ${escapeHTML(professor.name_fa)}"><div class="reliable-top"><div><div class="reliable-name">${escapeHTML(professor.name_fa)}</div><div class="reliable-faculty">${escapeHTML(professor.faculty || "")}</div></div><div class="reliable-score">${formatScore(score)}</div></div><div class="reliable-meta">امتیاز از ۵ • ${fa(reports(professor))} بازخورد مؤثر</div></article>`;
+    }).join("") || '<div class="empty">فعلاً استادی با حداقل ۳ بازخورد مؤثر و امتیاز قابل نمایش وجود ندارد.</div>';
     bindOpen();
   }
 
@@ -310,11 +310,12 @@ async function __loadData() {
     if (captureFocus && !$("#drawer").classList.contains("open")) previousFocus = document.activeElement;
 
     const score = professorRating(professor);
+    const count = reports(professor);
     const url = officialURL(professor.official_profile_url);
     $("#drawer").dataset.pid = String(id);
     $("#dName").textContent = professor.name_fa;
     $("#dMeta").textContent = [professor.academic_rank, professor.faculty, professor.department].filter(Boolean).join(" • ");
-    $("#drawerBody").innerHTML = `<div class="profile-top"><div class="profile-score"><b>${formatScore(score)}</b><span>${score === null ? "بدون امتیاز" : "امتیاز کلی از ۵"}</span></div><div class="profile-actions"><button class="mini-btn ${saved.has(id) ? "on" : ""}" data-save-id="${id}" aria-pressed="${saved.has(id)}">★ ذخیره</button></div></div><div class="badges"><span class="badge">${fa(reports(professor))} بازخورد</span><span class="badge">آخرین بازخورد: ${formatDate(latestDate(professor))}</span></div>${url ? `<p><a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">پروفایل رسمی دانشگاه ↗</a></p>` : ""}<h3 class="course-heading">شاخص‌های کلی استاد</h3><div class="dims">${dimensionHTML(professor)}</div><div class="callout profile-callout">امتیاز کلی و شاخص‌ها از تجمیع بازخوردهای ثبت‌شده برای خود استاد محاسبه می‌شوند. برای تفسیر بهتر، تعداد بازخورد را هم کنار امتیاز در نظر بگیرید.</div>`;
+    $("#drawerBody").innerHTML = `<div class="profile-top"><div class="profile-score"><b>${formatScore(score)}</b><span>${score === null ? "بدون امتیاز" : "امتیاز کلی از ۵"}</span></div><div class="profile-actions"><button class="mini-btn ${saved.has(id) ? "on" : ""}" data-save-id="${id}" aria-pressed="${saved.has(id)}">★ ذخیره</button></div></div><div class="badges"><span class="badge">${fa(count)} بازخورد مؤثر در امتیاز</span><span class="badge">آخرین بازخورد عددی: ${formatDate(latestDate(professor))}</span></div>${url ? `<p><a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">پروفایل رسمی دانشگاه ↗</a></p>` : ""}<h3 class="course-heading">شاخص‌های کلی استاد</h3><div class="dims">${dimensionHTML(professor)}</div><div class="callout profile-callout">امتیاز کلی و شاخص‌ها از تجمیع بازخوردهای قابل‌امتیازدهی برای خود استاد محاسبه می‌شوند. برای تفسیر بهتر، تعداد بازخورد مؤثر را هم کنار امتیاز در نظر بگیرید.</div>`;
     $("#drawer").classList.add("open");
     $("#drawerBackdrop").classList.add("open");
     $("#drawer").setAttribute("aria-hidden", "false");
