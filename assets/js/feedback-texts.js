@@ -1,25 +1,25 @@
 /* Sanitized student-feedback excerpts with confirmed current-roster identity matches.
-   Source wording may be lightly normalized for readability and privacy. These excerpts never affect numeric ratings. */
+   These are concise paraphrases of the submitted experiences, not raw chat quotes. They never affect numeric ratings. */
 (() => {
   const FEEDBACK_BY_PROFESSOR_ID = Object.freeze({
     "109": [
-      "دانش خانواده با استاد حوریه ربانی من باهاشون داشتم؛ خیلی عالی بودن."
+      "تجربه‌ام از درس دانش خانواده با استاد ربانی خیلی خوب بود."
     ],
     "122": [
-      "اصلاً خوب نمره نمی‌ده؛ سر کلاس هم باید تقریباً همیشه حاضر باشی."
+      "از نمره‌دهی رضایت نداشتم و حضور منظم در کلاس لازم بود."
     ],
     "124": [
-      "برای انقلاب فقط استاد عزیزخانی رو می‌شناسم؛ تو نمره دادن خوبن."
+      "برای درس انقلاب، تجربه‌ام از نمره‌دهی استاد عزیزخانی خوب بود."
     ],
     "130": [
-      "یه مقدار سخت‌گیرن به نظرم.",
-      "عالیه."
+      "به نظرم کمی سخت‌گیر هستند.",
+      "تجربه‌ام از این استاد خیلی خوب بود."
     ],
     "131": [
-      "عالیه."
+      "تجربه‌ام از این استاد خیلی خوب بود."
     ],
     "313": [
-      "استاد ترکی عالی هستن."
+      "تجربه‌ام از استاد ترکی خیلی خوب بود."
     ]
   });
 
@@ -51,7 +51,7 @@
     section.className = "community-section";
     section.dataset.feedbackTexts = "true";
     section.dataset.feedbackFor = professorId;
-    section.innerHTML = `<div class="community-head"><h3>متن بازخوردهای دانشجوها</h3><span class="community-badge">${items.length.toLocaleString("fa-IR")} مورد</span></div><div class="community-list">${items.map(text => `<article class="community-card"><div class="community-card-head"><span class="community-badge">بازخورد پالایش‌شده</span></div><div class="community-text">«${escapeHTML(text)}»</div></article>`).join("")}</div><div class="community-note">متن‌ها ناشناس‌اند و برای حذف اطلاعات شخصی، لحن نامناسب یا خطاهای واضح نگارشی ممکن است کمی پالایش شده باشند. این بازخوردهای متنی در محاسبهٔ امتیاز عددی استاد دخالت ندارند.</div>`;
+    section.innerHTML = `<div class="community-head"><h3>متن بازخوردهای دانشجوها</h3><span class="community-badge">${items.length.toLocaleString("fa-IR")} مورد</span></div><div class="community-list">${items.map(text => `<article class="community-card"><div class="community-card-head"><span class="community-badge">مضمون بازخورد</span></div><div class="community-text">${escapeHTML(text)}</div></article>`).join("")}</div><div class="community-note">بازخوردها ناشناس و برای حفظ حریم خصوصی به‌صورت کوتاه و پالایش‌شده بازنویسی شده‌اند؛ نقل‌قول خام نیستند و در محاسبهٔ امتیاز عددی استاد دخالت ندارند.</div>`;
 
     const qualitativeSummary = body.querySelector("[data-community-summary]");
     if (qualitativeSummary) body.insertBefore(section, qualitativeSummary);
