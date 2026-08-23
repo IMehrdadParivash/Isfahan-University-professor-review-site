@@ -1,5 +1,5 @@
 {
-  "dataset_version": "2026-08-23-v2",
+  "dataset_version": "2026-08-23-v3-privacy-hardened",
   "canonical_roster_date": "2026-08-22",
   "canonical_professor_count": 743,
   "statistics": {
@@ -28,12 +28,32 @@
   },
   "privacy": {
     "student_personal_identifiers_in_frontend": false,
-    "raw_chat_text_in_frontend": false
+    "raw_chat_text_in_frontend": false,
+    "singleton_scores_removed_before_publication": true,
+    "singleton_exact_dates_removed_before_publication": true
   },
   "sha256": {
-    "canonical_roster": "fcb9af1a4edef36abc4d7de84381a9c9c968728de77db2aa17de8b7acfe79e92",
-    "source_bundle": "a911c12380b63f96fd990c8e2ff0f0797c141244f4ab7f357bca84bc3ec79446",
-    "safe_evidence": "9272babee03bcb05c36b4cb239a05772a87e48defa08384564a123a951b0a463",
-    "site_database": "e51b7ad9264f4edb2b2bfc9b110576cd53153c480de5857c74f5ea46fbb46ec8"
+    "canonical_roster": "9b39d007489f09475003a15789140af1507626d12b8ae2ce8cf3565735f59d9f",
+    "safe_evidence": "9fa20b8de625fe02dd6966e1bcff265ea234511f2664d8e848f58a1b6129eed9",
+    "site_database": "954161d5fb3e93fa2335d5144c8d09ad7c2325747bf23a48b281f8e94b4787a2",
+    "public_compressed_dataset": "2eb58f3b11dbfd1e30bb220650996c1d82fc478564b87e6403a8446949576519",
+    "public_data_chunks": {
+      "assets/js/data-01.js": "7b39b559a027d85507e64e9f2ae65293e206d5d655fe321c8691c268719cd8cb",
+      "assets/js/data-02.js": "0efaccf0a0ec24086b52795bb95c37fb5d67ae6e4eb7fd7c405a039fad0f505f",
+      "assets/js/data-03.js": "450b7e5b0334fff846bb9d5fd44b93720b5efd50d28d941f34ae416c387be851",
+      "assets/js/data-04.js": "26fdfa0a529919bc2f0211f394db30166aa4db3ef1549469ac4ee3040c58f3a7",
+      "assets/js/data-05.js": "4f1bd71c207e11420384c1179c939b33b4315f613405cbc66f1807efd7dacbde",
+      "assets/js/data-06.js": "cc5bd8804ecb18300719a98f07ea801c81a6ab68040a91481112d72e8f1403af",
+      "assets/js/data-v17-01.js": "7b39b559a027d85507e64e9f2ae65293e206d5d655fe321c8691c268719cd8cb",
+      "assets/js/data-v17-02.js": "0efaccf0a0ec24086b52795bb95c37fb5d67ae6e4eb7fd7c405a039fad0f505f",
+      "assets/js/data-v17-03.js": "450b7e5b0334fff846bb9d5fd44b93720b5efd50d28d941f34ae416c387be851",
+      "assets/js/data-v17-04.js": "26fdfa0a529919bc2f0211f394db30166aa4db3ef1549469ac4ee3040c58f3a7",
+      "assets/js/data-v17-05.js": "4f1bd71c207e11420384c1179c939b33b4315f613405cbc66f1807efd7dacbde",
+      "assets/js/data-v17-06.js": "cc5bd8804ecb18300719a98f07ea801c81a6ab68040a91481112d72e8f1403af"
+    },
+    "public_runtime_files": {
+      "assets/avatar/avatar-motion.js": "482723c7fc4dbd36f4a76ba6b111e80806caa0870a89fca0da49899c60e1f15d",
+      "assets/js/app-v17.js": "fddb42c852dec442bff42b27227c9d2b2a46c0586e1f76f2cf4a54212f507066"
+    }
   }
 }

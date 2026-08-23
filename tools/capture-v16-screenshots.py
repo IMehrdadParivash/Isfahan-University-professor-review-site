@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Capture deterministic V16 QA screenshots from the direct file:// runtime."""
+"""Capture V17 QA screenshots when the real direct-file loader becomes hidden."""
 from __future__ import annotations
 
 from pathlib import Path
 import shutil
 import sys
-import time
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -36,23 +35,29 @@ def main() -> int:
         # Desktop release-candidate view.
         driver.set_window_size(1440, 1100)
         driver.get(INDEX.as_uri())
-        wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, "#cards .card")) > 0)
-        time.sleep(3.4)  # let the story loader finish so the application itself is visible
-        driver.save_screenshot(str(OUT / "v16-desktop.png"))
+        wait.until(lambda d: d.execute_script("return document.documentElement.dataset.appReady === 'true'"))
+        wait.until(lambda d: d.execute_script(
+            "const e=document.getElementById('storyLoader'),s=getComputedStyle(e);"
+            "return s.display==='none'||s.visibility==='hidden'||Number(s.opacity)===0;"
+        ))
+        driver.save_screenshot(str(OUT / "v17-desktop.png"))
 
         # Mobile view.
         driver.set_window_size(390, 844)
-        time.sleep(0.5)
-        driver.save_screenshot(str(OUT / "v16-mobile.png"))
+        wait.until(lambda d: d.execute_script("return innerWidth") <= 390)
+        driver.save_screenshot(str(OUT / "v17-mobile.png"))
 
         # Reduced-motion mobile view.
         driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-reduced-motion", "value": "reduce"}]})
         driver.refresh()
-        wait.until(lambda d: len(d.find_elements(By.CSS_SELECTOR, "#cards .card")) > 0)
-        time.sleep(0.8)
-        driver.save_screenshot(str(OUT / "v16-mobile-reduced-motion.png"))
+        wait.until(lambda d: d.execute_script("return document.documentElement.dataset.appReady === 'true'"))
+        wait.until(lambda d: d.execute_script(
+            "const e=document.getElementById('storyLoader'),s=getComputedStyle(e);"
+            "return s.display==='none'||s.visibility==='hidden'||Number(s.opacity)===0;"
+        ))
+        driver.save_screenshot(str(OUT / "v17-mobile-reduced-motion.png"))
 
-        print(f"Saved V16 QA screenshots to {OUT}")
+        print(f"Saved V17 QA screenshots to {OUT}")
         return 0
     finally:
         driver.quit()

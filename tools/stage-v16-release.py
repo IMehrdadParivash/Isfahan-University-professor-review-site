@@ -1,36 +1,47 @@
 #!/usr/bin/env python3
-"""Create a deployable V16 static directory with licensed fonts kept out of git.
-
-The public/source checkout may omit proprietary WOFF2 binaries. This script
-copies only runtime site files into a staging directory, installs the exact
-licensed fonts from local archives, and runs the release verifier against the
-staged output.
-
-Usage:
-
-    python tools/stage-v16-release.py
-
-Default output: .release/v16
-
-Required licensed archives must exist in the repository root or ./vendor-fonts/
-as documented by tools/install-v16-fonts.py. Run this only where your font
-license permits web deployment.
-"""
+"""Safely stage only the active V17 static runtime under the local .release tree."""
 from __future__ import annotations
 
 import argparse
+from html.parser import HTMLParser
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools"
+RELEASE_ROOT = ROOT / ".release"
+PROPRIETARY_FAMILIES = ("RaviFaNum-", "Anjoman-", "Pinar-", "Kahroba-")
+
+
+class AssetParser(HTMLParser):
+    """Collect local runtime references without executing or guessing site code."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.references: set[str] = set()
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        for key, value in attrs:
+            if key not in {"src", "href"} or not value:
+                continue
+            parsed = urlsplit(value)
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                continue
+            self.references.add(parsed.path.lstrip("/"))
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, default=ROOT / ".release" / "v16")
+    parser.add_argument("--output", type=Path, default=RELEASE_ROOT / "v17")
+    parser.add_argument(
+        "--with-licensed-fonts",
+        action="store_true",
+        help="Explicitly install purchased commercial font archives after confirming web-serving rights",
+    )
     return parser.parse_args()
 
 
@@ -39,37 +50,107 @@ def run(*args: str) -> None:
     subprocess.run(args, cwd=ROOT, check=True)
 
 
+def safe_output_path(candidate: Path) -> Path:
+    """Reject symlink traversal, parent traversal and deletion outside .release."""
+    absolute = candidate if candidate.is_absolute() else ROOT / candidate
+    if any(part == ".." for part in absolute.parts):
+        raise SystemExit("Refusing unsafe release output path: parent traversal")
+    resolved = absolute.resolve(strict=False)
+    allowed_root = RELEASE_ROOT.resolve(strict=False)
+    if resolved == allowed_root or allowed_root not in resolved.parents:
+        raise SystemExit("Refusing unsafe release output path: must be inside .release/")
+    for ancestor in (absolute, *absolute.parents):
+        if ancestor == ROOT.parent:
+            break
+        if ancestor.is_symlink():
+            raise SystemExit("Refusing unsafe release output path: symbolic link")
+    return resolved
+
+
+def assert_no_source_symlinks() -> None:
+    for path in (ROOT / "assets").rglob("*"):
+        if path.is_symlink():
+            raise SystemExit(f"Refusing to stage symbolic-link source asset: {path.relative_to(ROOT)}")
+
+
+def active_runtime_files() -> set[Path]:
+    parser = AssetParser()
+    parser.feed((ROOT / "index.html").read_text(encoding="utf-8"))
+    relative = {Path("index.html"), Path("assets/data/dataset-manifest.json")}
+    for name in ("_headers", "robots.txt", "favicon.ico", "favicon.svg", "sitemap.xml"):
+        if (ROOT / name).is_file():
+            relative.add(Path(name))
+
+    for ref in parser.references:
+        candidate = Path(ref)
+        if candidate.is_absolute() or ".." in candidate.parts:
+            raise SystemExit(f"Refusing unsafe HTML asset reference: {ref}")
+        source = ROOT / candidate
+        if source.is_file():
+            relative.add(candidate)
+
+    # Only image paths explicitly used by the loading-story motion code ship;
+    # leftover persistent-helper avatar poses must not enter the public bundle.
+    motion = ROOT / "assets/avatar/avatar-motion.js"
+    if motion.is_file():
+        for match in re.findall(r"(?:assets/avatar/)([A-Za-z0-9_-]+\.webp)", motion.read_text(encoding="utf-8")):
+            path = Path("assets/avatar") / match
+            if not (ROOT / path).is_file():
+                raise SystemExit(f"Missing active loader avatar asset: {path}")
+            relative.add(path)
+
+    # Publicly redistributable Vazirmatn must ship together with its full license.
+    for name in ("Vazirmatn-Regular.woff2", "Vazirmatn-Bold.woff2", "OFL.txt"):
+        path = Path("assets/fonts") / name
+        if not (ROOT / path).is_file():
+            raise SystemExit(f"Missing redistributable licensed font asset: {path}")
+        relative.add(path)
+
+    # Include relative CSS url() assets if a future stylesheet needs one.
+    for css in tuple(path for path in relative if path.suffix.lower() == ".css"):
+        text = (ROOT / css).read_text(encoding="utf-8")
+        for ref in re.findall(r"url\(\s*['\"]?([^)'\"]+)['\"]?\s*\)", text, flags=re.I):
+            parsed = urlsplit(ref.strip())
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                continue
+            candidate = (ROOT / css.parent / parsed.path).resolve(strict=False)
+            if ROOT not in candidate.parents:
+                raise SystemExit(f"Refusing CSS asset outside repository: {ref}")
+            if candidate.is_file():
+                relative.add(candidate.relative_to(ROOT))
+    return relative
+
+
 def main() -> int:
-    output = parse_args().output.resolve()
-    if output == ROOT or ROOT in output.parents and output.name == "assets":
-        raise SystemExit("Refusing unsafe release output path")
+    args = parse_args()
+    output = safe_output_path(args.output)
+    assert_no_source_symlinks()
+
+    # Cryptographic hashes cannot replace semantic privacy validation: a freshly
+    # rehashed but disclosure-bearing dataset must never delete or replace output.
+    run(sys.executable, str(TOOLS / "validate-v17-data.py"))
 
     if output.exists():
         shutil.rmtree(output)
     output.mkdir(parents=True)
 
-    # Runtime root files only.
-    for name in ("index.html", "_headers"):
-        src = ROOT / name
-        if src.is_file():
-            shutil.copy2(src, output / name)
+    for relative in sorted(active_runtime_files()):
+        if relative.parent == Path("assets/fonts") and relative.name.startswith(PROPRIETARY_FAMILIES):
+            continue
+        source, destination = ROOT / relative, output / relative
+        if source.is_symlink() or not source.is_file():
+            raise SystemExit(f"Refusing unsafe/missing runtime source: {relative}")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination, follow_symlinks=False)
 
-    # Copy runtime assets, but never copy source-checkout font binaries.
-    assets_src = ROOT / "assets"
-    assets_dst = output / "assets"
+    if args.with_licensed_fonts:
+        run(sys.executable, str(TOOLS / "install-v16-fonts.py"), "--dest-root", str(output))
+        font_mode = "--require-licensed-fonts"
+    else:
+        font_mode = "--allow-missing-fonts"
+    run(sys.executable, str(TOOLS / "verify-v16-assets.py"), "--root", str(output), font_mode)
 
-    def ignore_assets(directory: str, names: list[str]) -> set[str]:
-        path = Path(directory)
-        if path.name == "fonts":
-            return {n for n in names if n.lower().endswith((".woff", ".woff2", ".ttf", ".otf"))}
-        return set()
-
-    shutil.copytree(assets_src, assets_dst, dirs_exist_ok=True, ignore=ignore_assets)
-
-    run(sys.executable, str(TOOLS / "install-v16-fonts.py"), "--dest-root", str(output))
-    run(sys.executable, str(TOOLS / "verify-v16-assets.py"), "--root", str(output))
-
-    print("\nV16 staged release is ready:")
+    print("\nV17 staged release is ready:")
     print(output)
     print("Deploy this directory itself to Cloudflare Pages; do not deploy .release/ as a parent folder.")
     return 0
