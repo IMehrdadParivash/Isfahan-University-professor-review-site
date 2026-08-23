@@ -1,5 +1,5 @@
 {
-  "dataset_version": "2026-08-23-v3-privacy-hardened",
+  "dataset_version": "2026-08-23-v4-professor-level",
   "canonical_roster_date": "2026-08-22",
   "canonical_professor_count": 743,
   "statistics": {
@@ -16,12 +16,14 @@
   },
   "methodology": {
     "professor_master": "official 743-person current educational roster",
-    "review_grain": "professor × course",
+    "underlying_evidence_grain": "professor × course",
+    "public_score_grain": "professor",
     "source_structured_survey_scale": "0–10",
     "normalized_scale": "0–5",
     "numeric_display_minimum_reports": 2,
-    "cautious_ranking_guardrail": "minimum 3 structured reports AND latest evidence <= 3 years",
-    "global_professor_score": false,
+    "public_professor_score": true,
+    "public_professor_score_method": "report-count-weighted mean of privacy-safe structured course means",
+    "qualitative_summaries_affect_numeric_score": false,
     "legacy_bayesian_score_used": false,
     "legacy_prior_issue": "prior 3 was not neutral on normalized 0–5 scale; legacy Bayesian scores excluded",
     "historical_or_unresolved_in_main_professor_list": false
@@ -29,6 +31,8 @@
   "privacy": {
     "student_personal_identifiers_in_frontend": false,
     "raw_chat_text_in_frontend": false,
+    "student_usernames_in_frontend": false,
+    "qualitative_summaries_anonymized": true,
     "singleton_scores_removed_before_publication": true,
     "singleton_exact_dates_removed_before_publication": true
   },
@@ -44,10 +48,13 @@
       "assets/data/professors-04.js": "26fdfa0a529919bc2f0211f394db30166aa4db3ef1549469ac4ee3040c58f3a7",
       "assets/data/professors-05.js": "4f1bd71c207e11420384c1179c939b33b4315f613405cbc66f1807efd7dacbde",
       "assets/data/professors-06.js": "cc5bd8804ecb18300719a98f07ea801c81a6ab68040a91481112d72e8f1403af"
-    },
-    "public_runtime_files": {
-      "assets/js/app.js": "fddb42c852dec442bff42b27227c9d2b2a46c0586e1f76f2cf4a54212f507066",
-      "assets/js/loader.js": "482723c7fc4dbd36f4a76ba6b111e80806caa0870a89fca0da49899c60e1f15d"
+    }
+  },
+  "integrity": {
+    "public_runtime_git_blobs": {
+      "assets/js/app.js": "5d2d1ab98f7aa24c9862a368fad1504163b4087b",
+      "assets/js/community-notes.js": "2c56edf2acbcc9ef2709e20dbd93879aa8dcdeca",
+      "assets/js/loader.js": "30b734b8dcdf8950a4d63d8f01dbef1e5223dc6e"
     }
   }
 }
