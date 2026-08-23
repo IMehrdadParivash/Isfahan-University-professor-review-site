@@ -1,28 +1,29 @@
-/* V16 — local typography only. No CDN/network font dependency. */
-@font-face{font-family:"RaviV16";src:url("../fonts/RaviFaNum-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:"RaviV16";src:url("../fonts/RaviFaNum-Medium.woff2") format("woff2");font-weight:500;font-style:normal;font-display:swap}
-@font-face{font-family:"RaviV16";src:url("../fonts/RaviFaNum-SemiBold.woff2") format("woff2");font-weight:600;font-style:normal;font-display:swap}
-@font-face{font-family:"RaviV16";src:url("../fonts/RaviFaNum-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
-@font-face{font-family:"RaviV16";src:url("../fonts/RaviFaNum-ExtraBlack.woff2") format("woff2");font-weight:950;font-style:normal;font-display:swap}
-
-@font-face{font-family:"AnjomanV16";src:url("../fonts/Anjoman-Regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap}
-@font-face{font-family:"AnjomanV16";src:url("../fonts/Anjoman-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
-@font-face{font-family:"AnjomanV16";src:url("../fonts/Anjoman-ExtraBold.woff2") format("woff2");font-weight:800;font-style:normal;font-display:swap}
-@font-face{font-family:"AnjomanV16";src:url("../fonts/Anjoman-Heavy.woff2") format("woff2");font-weight:900;font-style:normal;font-display:swap}
-
-@font-face{font-family:"PinarV16";src:url("../fonts/Pinar-VF-FD.woff2") format("woff2");font-weight:300 900;font-style:normal;font-display:swap}
-@font-face{font-family:"KahrobaV16";src:url("../fonts/Kahroba-VF-FD.woff2") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
-
-:root{
-  --font:"RaviV16",Tahoma,"Segoe UI",Arial,sans-serif;
-  --font-ui:"RaviV16",Tahoma,"Segoe UI",Arial,sans-serif;
-  --font-display:"AnjomanV16","RaviV16",Tahoma,sans-serif;
-  --font-accent:"PinarV16","AnjomanV16","RaviV16",sans-serif;
-  --font-voice:"KahrobaV16","RaviV16",Tahoma,sans-serif;
+/* Vazirmatn is bundled under SIL Open Font License 1.1; no remote font requests. */
+@font-face {
+  font-family: "Vazirmatn Local";
+  src: url("../fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
 }
 
-body,button,input,select,textarea{font-family:var(--font-ui)}
-.hero h1,.section-title h2,.results-head h2,.drawer-title h2,.modal-head h2,.name,.reliable-name{font-family:var(--font-display)}
-.hero h1 em,.type-signature,.metric b,.reliable-score,.score-val{font-family:var(--font-accent)}
-.community-text,.community-context,.note,.community-note{font-family:var(--font-voice)}
-.metric b,.score-val,.reliable-score{font-variant-numeric:tabular-nums}
+@font-face {
+  font-family: "Vazirmatn Local";
+  src: url("../fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  --font: "Vazirmatn Local", Tahoma, "Segoe UI", Arial, sans-serif;
+  --font-ui: var(--font);
+  --font-display: var(--font);
+  --font-accent: var(--font);
+  --font-voice: var(--font);
+}
+
+body, button, input, select, textarea { font-family: var(--font-ui); }
+.hero h1, .section-title h2, .results-head h2, .drawer-title h2,
+.modal-head h2, .name, .reliable-name { font-family: var(--font-display); }
+.metric b, .score-val, .reliable-score { font-variant-numeric: tabular-nums; }

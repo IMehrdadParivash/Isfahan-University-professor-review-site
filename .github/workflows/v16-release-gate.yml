@@ -1,28 +1,10 @@
-name: V17 Release Gate
+name: V17 Privacy, Static Runtime and Release Gate
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'index.html'
-      - 'assets/**'
-      - 'tools/**'
-      - 'V16_QA.md'
-      - 'V16_FONT_QA.md'
-      - 'CLOUDFLARE_PAGES.md'
-      - '_headers'
-      - '.github/workflows/v16-release-gate.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'index.html'
-      - 'assets/**'
-      - 'tools/**'
-      - 'V16_QA.md'
-      - 'V16_FONT_QA.md'
-      - 'CLOUDFLARE_PAGES.md'
-      - '_headers'
-      - '.github/workflows/v16-release-gate.yml'
   workflow_dispatch:
 
 permissions:
@@ -30,19 +12,21 @@ permissions:
 
 jobs:
   data-integrity:
-    name: Canonical 743-professor data integrity
+    name: Public data privacy, roster and executable hashes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Validate embedded V17 database
+      - name: Reject singleton evidence, PII, invalid URLs and incorrect hashes
         run: python tools/validate-v17-data.py
+      - name: Prove privacy validator rejects adversarial disclosure and tampering
+        run: python tools/test-v17-data-privacy.py
 
   static-sanity:
-    name: Static/offline sanity
+    name: Offline runtime, legal fonts and security headers
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Check required local references
+      - name: Validate actual V17 local runtime and safe publication policy
         shell: python
         run: |
           from pathlib import Path
@@ -51,6 +35,9 @@ jobs:
           root = Path('.')
           html = (root / 'index.html').read_text(encoding='utf-8')
           css = (root / 'assets/css/fonts.css').read_text(encoding='utf-8')
+          headers = (root / '_headers').read_text(encoding='utf-8')
+          ignore = (root / '.gitignore').read_text(encoding='utf-8')
+          failures = []
 
           required = [
               'assets/avatar/loader-avatar.webp',
@@ -58,61 +45,83 @@ jobs:
               'assets/css/fonts.css',
               'assets/css/ui-hotfix.css',
               'assets/js/app-v17.js',
-              'assets/js/ui-hotfix.js',
           ]
-          failures = []
           for rel in required:
               if rel not in html:
                   failures.append(f'index.html does not reference {rel}')
               if not (root / rel).is_file():
-                  failures.append(f'missing file: {rel}')
+                  failures.append(f'missing runtime file: {rel}')
+
+          for rel in ('assets/fonts/Vazirmatn-Regular.woff2', 'assets/fonts/Vazirmatn-Bold.woff2', 'assets/fonts/OFL.txt', 'robots.txt'):
+              if not (root / rel).is_file():
+                  failures.append(f'missing legal-publication asset: {rel}')
+
+          if 'SIL OPEN FONT LICENSE' not in (root / 'assets/fonts/OFL.txt').read_text(encoding='utf-8'):
+              failures.append('Vazirmatn SIL Open Font License is missing')
+          for name in ('Vazirmatn-Regular.woff2', 'Vazirmatn-Bold.woff2'):
+              if name not in css:
+                  failures.append(f'fonts.css does not use locally bundled {name}')
 
           external = re.findall(r'(?:src|href)=["\']https?://[^"\']+', html, flags=re.I)
           if external:
-              failures.append('remote dependency in index.html: ' + ', '.join(external))
+              failures.append('remote runtime dependency: ' + ', '.join(external))
+          if re.search(r'url\(["\']?https?://', css, flags=re.I):
+              failures.append('remote font CDN dependency')
+          if 'Content-Security-Policy:' not in headers or "script-src 'self'" not in headers:
+              failures.append('CSP does not restrict runtime JavaScript to local origin')
+          if '/.release/' not in ignore:
+              failures.append('.release directory is not ignored')
 
-          css_external = re.findall(r'url\(["\']?https?://', css, flags=re.I)
-          if css_external:
-              failures.append('remote dependency in assets/css/fonts.css')
-
-          if 'assets/fonts/' not in css and '../fonts/' not in css:
-              failures.append('fonts.css is not wired to local font paths')
+          commercial = [p for p in (root / 'assets/fonts').glob('*.woff2') if p.name.startswith(('RaviFaNum-', 'Anjoman-', 'Pinar-', 'Kahroba-'))]
+          if commercial:
+              failures.append('proprietary fonts in public repository: ' + ', '.join(str(p) for p in commercial))
 
           if failures:
-              print('\n'.join('FAIL: ' + x for x in failures))
+              print('\n'.join('FAIL: ' + issue for issue in failures))
               sys.exit(1)
+          print('Static/offline, security-header and font-license checks passed.')
 
-          print('Static/offline sanity checks passed.')
+      - name: Check all release and browser tooling syntax
+        run: python -m compileall -q tools
 
-      - name: Check release tooling syntax
+      - name: Verify active executable files and real manifest hashes
+        run: python tools/verify-v16-assets.py --allow-missing-fonts
+
+      - name: Exercise real V17 data, filters, Persian search and dialogs in Node DOM
+        run: node tools/test-v17-ui-runtime.cjs
+
+  release-safety:
+    name: Adversarial safe staging and clean runtime allowlist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Reject path traversal, external deletion, symlinks and tampered data
+        run: python tools/test-v17-release-safety.py
+      - name: Build default privacy-safe Cloudflare Pages directory
         run: |
-          python -m py_compile tools/install-v16-fonts.py tools/verify-v16-assets.py tools/stage-v16-release.py tools/validate-v17-data.py
-          python tools/install-v16-fonts.py --help >/dev/null
-          python tools/verify-v16-assets.py --help >/dev/null
-          python tools/stage-v16-release.py --help >/dev/null
-
-      - name: Upload source runtime bundle for staged-release QA
+          python tools/stage-v16-release.py
+          python tools/verify-v16-assets.py --root .release/v17 --allow-missing-fonts
+      - name: Upload exactly the verified static release
         uses: actions/upload-artifact@v4
         with:
-          name: v17-source-runtime
-          path: |
-            index.html
-            _headers
-            assets/**
-            tools/**
+          name: v17-privacy-safe-cloudflare-pages
+          path: .release/v17/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 
   browser-smoke:
-    name: Browser smoke — direct file mode
+    name: Real Chrome file-mode UI, accessibility and mobile regressions
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - name: Install browser test dependency
         run: python -m pip install --disable-pip-version-check selenium
-      - name: Exercise V17 through file://
+      - name: Confirm Chrome is available on runner
+        run: google-chrome --version
+      - name: Exercise full V17 static runtime through file://
         run: python tools/browser-smoke-v16.py
-      - name: Exercise V17 UI regressions
+      - name: Check actual visible overlays, advanced filters and mobile layout
         run: python tools/browser-ui-regression.py
       - name: Capture V17 QA screenshots
         if: success()
@@ -125,11 +134,3 @@ jobs:
           path: artifacts/*.png
           if-no-files-found: ignore
           retention-days: 14
-
-  source-assets:
-    name: Source asset verification — license-safe
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - name: Verify source assets and any repository fonts
-        run: python tools/verify-v16-assets.py --allow-missing-fonts

@@ -1,10 +1,20 @@
-# Local licensed source archives used by tools/install-v16-fonts.py
+# Licensed font archives and locally staged publication bundles must never be committed.
 /vendor-fonts/
+/.release/
 /Ravi-Pro.zip
 /Anjoman Pro.zip
-/Pinar-V3 [@FontiranIR].zip
+/Pinar-V3 [[]@FontiranIR[]].zip
 /Kahroba-Pro.zip
 
-# Local QA/temp output
+# Proprietary webfonts are allowed only in an explicitly licensed local staging run.
+/assets/fonts/RaviFaNum-*.woff2
+/assets/fonts/Anjoman-*.woff2
+/assets/fonts/Pinar-*.woff2
+/assets/fonts/Kahroba-*.woff2
+
+# Local QA and temporary output.
+/artifacts/
+__pycache__/
+*.py[cod]
 *.tmp
 .DS_Store

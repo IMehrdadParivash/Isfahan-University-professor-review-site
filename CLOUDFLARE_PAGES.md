@@ -1,89 +1,68 @@
-# Cloudflare Pages deployment — V16
+# Cloudflare Pages deployment — V17
 
-V16 is intentionally static. It does not require a framework, Node.js runtime, backend, database, Pages Functions or Workers.
+This is a static, offline-capable site. It requires no build system, Node.js runtime, API, database, Worker, Pages Function, paid Cloudflare service or runtime environment variables.
 
-There are two supported deployment paths depending on the font license.
+## Required privacy gate
 
-## Path A — staged Direct Upload (recommended when font binaries should not live in the source repository)
-
-This keeps proprietary WOFF2 binaries out of Git history while still producing the exact static site that Cloudflare should serve.
-
-> **Cloudflare project-type note:** Direct Upload and Git integration are separate Pages project types. Cloudflare's current Pages documentation states that a Direct Upload project cannot later be switched to Git integration; moving to Git integration requires creating a new Pages project. Choose the project type deliberately.
-
-1. Keep the licensed source font archives in the repository root or `vendor-fonts/` **on the deployment machine only**. The archives are gitignored.
-2. Run:
-
-   ```bash
-   python tools/stage-v16-release.py
-   ```
-
-3. The script creates `.release/v16/`, copies only runtime site files, extracts the exact eleven licensed WOFF2 files into the staged copy, verifies every size/SHA-256 value, and leaves the source checkout untouched.
-4. In the Cloudflare dashboard open **Workers & Pages → Create application → Pages / Direct Upload (drag and drop)**.
-5. Enter the Pages project name and upload the **contents of `.release/v16/`** (or the staged folder itself where the UI accepts a folder). Do not upload the `.release` parent directory.
-6. Select **Deploy site** / **Save and Deploy**.
-7. No build command or runtime environment variables are required by the site itself.
-
-Cloudflare also supports Direct Upload through Wrangler. For a folder that has already been staged and strictly verified:
+Do not deploy an older commit or cached bundle: earlier public files contained individual-response numeric values and exact individual-response dates. Run both gates before every deployment:
 
 ```bash
-npx wrangler pages project create <PROJECT_NAME>
-npx wrangler pages deploy .release/v16 --project-name=<PROJECT_NAME>
+python tools/validate-v17-data.py
+python tools/verify-v16-assets.py --allow-missing-fonts
 ```
 
-Wrangler uploads a folder; the dashboard drag-and-drop flow accepts a folder or ZIP. Do not place licensed source archives inside the uploaded release directory.
+The validator checks the canonical 743-person roster, 17 faculties, 64 educational units, the 0–5 professor/course scale, suppression of all single-response scores and dates, and the hashes of the actual public runtime data.
 
-This is the preferred path when the font license permits normal webfont deployment but does not permit publishing raw font binaries in a public source repository.
+## Option A: Git-integrated Pages
 
-## Path B — Git integration
+Recommended for the default **font-license-safe** release:
 
-Use this only if the applicable font license explicitly permits the WOFF2 files to be stored in the connected repository.
+- Production branch: `main` after the reviewed privacy-fix pull request is merged.
+- Framework preset: **None**.
+- Build command: empty.
+- Build output/root directory: repository root.
+- Runtime environment variables: none.
 
-Recommended Pages settings:
+Commercial webfont binaries are not part of the default repository release. The page bundles official Vazirmatn Regular/Bold under SIL OFL 1.1, includes the complete font license, retains local system-font fallbacks and never requires an external font CDN.
 
-- Production branch: `main`
-- Framework preset: None
-- Build command: leave empty
-- Build output directory: repository root (`/`)
-- Root directory: repository root
-- Environment variables: none required
+## Option B: Direct upload of a staged runtime
 
-Place the exact eleven manifest WOFF2 files under `assets/fonts/` and run:
+Create an allowlisted, verified runtime directory:
 
 ```bash
-python tools/verify-v16-assets.py
+python tools/stage-v16-release.py
+python tools/verify-v16-assets.py --root .release/v17 --allow-missing-fonts
 ```
 
-The browser smoke test will additionally verify all four local font families once the binaries are present in the checkout.
+Upload the **contents of `.release/v17/`** in Cloudflare Pages Direct Upload. The stage script refuses destinations outside the project-local `.release/` directory, rejects symbolic links and excludes development files, archived datasets and unlicensed font binaries.
 
-## Current V16 release flow
+Direct Upload and Git integration are different Cloudflare Pages project types; confirm the existing project's type before changing deployment processes. Do not create a new project or change a domain without the owner's approval.
 
-1. V16 source/static/avatar/browser QA completed on PR #1.
-2. The exact selected font files were verified against `assets/fonts/README.md` and `V16_FONT_QA.md`.
-3. A strict staged runtime containing the exact eleven WOFF2 files passed the complete asset/hash verifier.
-4. PR #1 was merged into `main`.
-5. Create/deploy the Cloudflare Pages project using Path A unless repository redistribution rights explicitly support Path B.
-6. Repeat the short production smoke test against the generated `pages.dev` URL.
+### Optional licensed font deployment
 
-## What is continuously tested
+Only after confirming that the applicable license permits serving those exact files from the intended public domain:
 
-The browser smoke job opens `index.html` directly from disk in headless Chrome. It exercises professor data boot, search, faculty/department/course filters, sorting, professor drawer, local saved-state persistence, comparison modal, dark/light theme, narrow mobile viewport, reduced-motion behavior and repository-local Professor Scout assets. The test does not start a web server.
+```bash
+python tools/stage-v16-release.py --with-licensed-fonts
+python tools/verify-v16-assets.py --root .release/v17 --require-licensed-fonts
+```
 
-## Offline parity
+Keep purchased archives on the private deployment machine. This switch does not grant permission to distribute the fonts through public Git history.
 
-Cloudflare serves the same static layout that can be opened locally. V16 does not depend on a remote API/CDN at runtime. Data ships as local JavaScript chunks and avatar/font URLs are relative.
+## Cache and incident response
 
-The optional `_headers` file affects HTTP hosting only; it does not change direct `file://` behavior.
+`_headers` requires revalidation of mutable JavaScript and public data chunks so a newly deployed HTML page cannot be paired with a stale privacy-sensitive dataset. Security and cache headers apply to HTTP deployment only and do not alter `file://` behavior.
 
-## Final production check
+If a vulnerable release was already served, deploy the corrected bundle and purge affected Cloudflare cache entries or purge the project cache using an account with the relevant Cloudflare permissions. Changing provider configuration, removing public Git history or making the repository private requires an explicit owner decision. Removing a file in the next commit alone does not erase public historical blobs or third-party caches.
 
-After deployment, verify:
+## Production acceptance checklist
 
-- initial render and story loader
-- Ravi/Anjoman/Pinar/Kahroba rendering and Persian digits
-- one professor search
-- one professor drawer
-- save state and one two-professor comparison
-- dark/light theme
-- desktop and mobile viewport
-- no missing-font or missing-avatar requests in the browser network/console
-- reduced-motion behavior
+- Confirm 743 professors, 17 faculties and 64 faculty/department units.
+- Confirm faculty → department → course cascading, Persian search and complete filter reset.
+- Confirm professor details and two-professor comparison are visually rendered and keyboard dismissible.
+- Confirm single-response values and dates are absent from the downloaded public data, not merely hidden by the UI.
+- Confirm desktop and mobile layouts, dark/light themes, short avatar-only loader and reduced-motion behavior.
+- Confirm no external runtime requests, proprietary font files, raw student data or horizontal mobile overflow.
+- Check the deployed response's CSP and cache headers.
+
+A `pages.dev` or custom-domain address must come from the actual Cloudflare account or repository configuration; this guide intentionally does not invent a production URL. Reachability from inside Iran or without a VPN cannot be confirmed without an appropriate real network vantage point.

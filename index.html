@@ -5,18 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0e12">
 <meta name="description" content="راهنمای انتخاب استاد دانشگاه اصفهان — مبتنی بر roster رسمی ۷۴۳ نفره و شواهد استاد × درس">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fa_IR">
+<meta property="og:title" content="راهنمای انتخاب استاد | دانشگاه اصفهان">
+<meta property="og:description" content="جست‌وجوی ۷۴۳ استاد رسمی دانشگاه اصفهان و مقایسهٔ شواهد معتبر در سطح استاد × درس.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="راهنمای انتخاب استاد | دانشگاه اصفهان">
+<meta name="twitter:description" content="فهرست رسمی استادان دانشگاه اصفهان؛ فیلتر دانشکده، گروه و درس با رعایت حریم خصوصی.">
 <title>راهنمای انتخاب استاد | دانشگاه اصفهان</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/avatar/loader-avatar.webp" as="image" type="image/webp">
-<script src="assets/js/style-01.js"></script>
-<script src="assets/js/style-02.js"></script>
-<link rel="stylesheet" href="assets/css/fonts.css">
 <link rel="stylesheet" href="assets/css/ui-hotfix.css">
+<link rel="stylesheet" href="assets/css/fonts.css">
 </head>
 <body>
 <div id="storyLoader" aria-hidden="true">
   <div class="story-stage">
     <div class="story-scene">
-      <img class="story-avatar" alt="" src="assets/avatar/loader-avatar.webp" width="240" height="213" decoding="async">
+      <img class="story-avatar" alt="" src="assets/avatar/loader-avatar.webp" width="128" height="128" decoding="async">
       <div class="story-terminal">
         <div class="story-term-head"><i></i><i></i><i></i></div>
         <div class="story-term-body"><div class="story-prompt">&gt; build Professor Scout</div><div class="story-code"><i></i><i></i><i></i><i></i></div></div>
@@ -35,8 +41,8 @@
       <div>راهنمای انتخاب استاد<small>دانشگاه اصفهان</small></div>
     </div>
     <div class="top-actions">
-      <button id="savedToggle" class="ghost hide-mobile" style="display:none">★ ذخیره‌شده‌ها</button>
-      <button id="themeBtn" class="ghost" title="تغییر پوسته">◐</button>
+      <button id="savedToggle" class="ghost hide-mobile" aria-pressed="false">★ ذخیره‌شده‌ها</button>
+      <button id="themeBtn" class="ghost" title="تغییر پوسته" aria-label="تغییر پوستهٔ روشن و تاریک">◐</button>
     </div>
   </div>
 </header>
@@ -56,7 +62,7 @@
         <div class="hero-search-shell">
           <div class="hero-search">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
-            <input id="heroQ" placeholder="نام استاد، درس یا گروه آموزشی…" autocomplete="off">
+            <input id="heroQ" aria-label="جست‌وجوی نام استاد، درس یا گروه آموزشی" placeholder="نام استاد، درس یا گروه آموزشی…" autocomplete="off">
             <span class="kbd">Ctrl K</span>
           </div>
         </div>
@@ -92,12 +98,24 @@
       <div class="filters">
         <div class="filter-caption"><b>فیلترهای انتخاب استاد</b><span>برای محدود کردن نتایج از چند فیلتر هم‌زمان استفاده کنید</span></div>
         <div class="filter-grid">
-          <label class="field field-search wide"><span class="field-label">جست‌وجو</span><input id="q" class="control" placeholder="نام استاد، درس، نام جایگزین یا گروه…"></label>
+          <label class="field field-search wide"><span class="field-label">جست‌وجو</span><input id="q" class="control" placeholder="نام استاد، درس یا گروه آموزشی…" autocomplete="off"></label>
           <label class="field field-select"><span class="field-label">دانشکده</span><select id="faculty" class="control"><option value="">همه دانشکده‌ها</option></select></label>
           <label class="field field-select"><span class="field-label">گروه آموزشی</span><select id="department" class="control"><option value="">همه گروه‌ها</option></select></label>
           <label class="field field-select"><span class="field-label">درس</span><select id="course" class="control"><option value="">همه درس‌ها</option></select></label>
           <label class="field field-select"><span class="field-label">مرتب‌سازی</span><select id="sort" class="control"><option value="reviews">بیشترین شواهد</option><option value="rankable">بیشترین درس قابل مقایسه</option><option value="name">نام استاد</option></select></label>
         </div>
+        <details id="precisionFilters" class="precision-panel">
+          <summary><span><b>فیلترهای دقیق‌تر</b><small>مرتبه، تعداد گزارش، تازگی و شاخص‌های هر درس</small></span><i aria-hidden="true">+</i></summary>
+          <div class="precision-grid">
+            <label class="field field-select"><span class="field-label">مرتبهٔ علمی</span><select id="rank" class="control"><option value="">همهٔ مرتبه‌ها</option></select></label>
+            <label class="field field-select"><span class="field-label">حداقل گزارش</span><select id="minReports" class="control"><option value="">بدون محدودیت</option><option value="2">حداقل ۲ گزارش</option><option value="3">حداقل ۳ گزارش</option><option value="5">حداقل ۵ گزارش</option><option value="10">حداقل ۱۰ گزارش</option></select></label>
+            <label class="field field-select"><span class="field-label">تازگی شاهد</span><select id="freshness" class="control"><option value="">همهٔ تاریخ‌ها</option><option value="1">حداکثر ۱ سال</option><option value="2">حداکثر ۲ سال</option><option value="3">حداکثر ۳ سال</option><option value="5">حداکثر ۵ سال</option></select></label>
+            <label class="field field-select"><span class="field-label">حداقل امتیاز درس از ۵</span><select id="minRating" class="control"><option value="">بدون محدودیت</option><option value="2">حداقل ۲</option><option value="3">حداقل ۳</option><option value="3.5">حداقل ۳٫۵</option><option value="4">حداقل ۴</option><option value="4.5">حداقل ۴٫۵</option></select></label>
+            <label class="field field-select"><span class="field-label">شاخص تدریس</span><select id="dimension" class="control"><option value="">همهٔ شاخص‌ها</option><option value="teaching">انتقال مطالب</option><option value="coherence">پیوستگی تدریس</option><option value="knowledge">دانش عمومی</option><option value="management">مدیریت کلاس</option><option value="responsiveness">پاسخ‌گویی</option><option value="behavior">رفتار با دانشجو</option></select></label>
+            <label class="field field-select"><span class="field-label">حداقل امتیاز شاخص از ۵</span><select id="minDimension" class="control"><option value="">بدون محدودیت</option><option value="2">حداقل ۲</option><option value="3">حداقل ۳</option><option value="3.5">حداقل ۳٫۵</option><option value="4">حداقل ۴</option><option value="4.5">حداقل ۴٫۵</option></select></label>
+          </div>
+          <p class="precision-note">امتیاز و شاخص فقط برای ترکیب استاد × درس با دست‌کم ۲ گزارش مستقل بررسی می‌شوند. بدون انتخاب درس، کافی است یکی از درس‌های استاد با همهٔ شرط‌های انتخاب‌شده سازگار باشد.</p>
+        </details>
         <div class="material-row">
           <div class="chips">
             <button class="chip active" data-status="all">همه استادها</button>
@@ -113,7 +131,7 @@
         </div>
       </div>
     </div>
-    <div class="results-head"><h2>اساتید</h2><div id="resultCount" class="result-count"></div></div>
+    <div class="results-head"><h2>اساتید</h2><div id="resultCount" class="result-count" role="status" aria-live="polite" aria-atomic="true"></div></div>
     <div id="cards" class="cards"></div>
     <button id="loadMore" class="loadmore">نمایش موارد بیشتر</button>
   </div>
@@ -123,7 +141,7 @@
 <footer class="footer"><div class="shell"><b>راهنمای انتخاب استاد دانشگاه اصفهان · V17 Data Integrity</b> — فهرست اصلی دقیقاً ۷۴۳ عضو roster رسمی ۲۲ اوت ۲۰۲۶ است. فرم خام ۰–۱۰ به ۰–۵ نرمال شده؛ امتیاز کلی استاد نمایش داده نمی‌شود و legacy Bayesian score در رتبه‌بندی استفاده نمی‌شود.</div></footer>
 
 <div id="drawerBackdrop" class="drawer-backdrop"></div>
-<aside id="drawer" class="drawer" aria-hidden="true">
+<aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="dName" aria-describedby="dMeta" aria-hidden="true" tabindex="-1">
   <div class="drawer-head">
     <div class="drawer-title"><h2 id="dName"></h2><p id="dMeta"></p></div>
     <button id="drawerClose" class="close">بستن</button>
@@ -136,9 +154,9 @@
   <button id="compareGo" class="compare-go" disabled>مقایسه</button>
 </div>
 
-<div id="compareModal" class="modal-backdrop">
-  <div class="modal">
-    <div class="modal-head"><h2>مقایسه اساتید</h2><button id="compareClose" class="close">بستن</button></div>
+<div id="compareModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="compareTitle" tabindex="-1">
+    <div class="modal-head"><h2 id="compareTitle">مقایسه اساتید</h2><button id="compareClose" class="close">بستن</button></div>
     <div id="compareBody"></div>
   </div>
 </div>
@@ -151,6 +169,5 @@
 <script src="assets/js/data-v17-06.js"></script>
 <script src="assets/js/app-v17.js"></script>
 <script src="assets/avatar/avatar-motion.js"></script>
-<script src="assets/js/ui-hotfix.js"></script>
 </body>
 </html>

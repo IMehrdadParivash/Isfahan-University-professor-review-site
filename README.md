@@ -1,68 +1,51 @@
-# Isfahan University Professor Review Site — V16
+# Isfahan University Professor Review Site — V17
 
-Static Persian professor-review website for the University of Isfahan.
+Offline-first, Persian, right-to-left professor/course discovery for the **University of Isfahan**. The application is plain static HTML, CSS and JavaScript: it requires no backend, database, API, external CDN, paid service, build system, Cloudflare Worker or Pages Function.
 
-## Current release
+## Canonical public dataset
 
-`main` contains **V16**: local typography architecture plus the Professor Scout avatar/motion system.
+- Exactly **743** officially identified professors, **17** faculties, **64** faculty/department units and **61** distinct department labels.
+- Evidence and numeric comparisons exist only for a **professor × course** pair; there is no overall professor rating or legacy Bayesian ranking.
+- The only supported score range is **0–5**.
+- A course or dimension score with fewer than two underlying responses is removed from the public data before publication. Single-response exact dates are also removed.
+- Raw student messages, identifying fields and individual responses must never enter the browser bundle.
+- Public dataset, compressed payload and runtime chunks are cryptographically checked against `assets/data/dataset-manifest.json`.
+- The avatar appears only during the short, reduced-motion-aware loading sequence.
 
-V16 remains fully static and can run directly from local files without a backend, database, API, CDN, Node.js runtime, Pages Functions or Workers.
+The older V16 planning/QA documents describe a historical implementation and are not a description of the current V17 runtime. The active entrypoint is `index.html`, the active application is `assets/js/app-v17.js`, and the active public data chunks are the `data-v17-*` files referenced by `index.html`.
 
-## V16 highlights
+## Run locally
 
-- Story-based Professor Scout loading sequence
-- Dedicated local avatar poses for idle, think, work, walk, search, success, compare and no-results states
-- Compact persistent Professor Scout helper with search/detail/save/compare reactions
-- `prefers-reduced-motion` support
-- Local professor data and filters/search/compare UI
-- Dark/light theme and mobile layout
-- Local typography roles:
-  - Ravi FaNum — UI/body
-  - Anjoman — headings/display
-  - Pinar VF FD — accents/numerics
-  - Kahroba VF FD — student-voice/editorial text
+Open `index.html` directly as a `file://` URL in a recent Chromium-based browser. No development server is required. Alternatively, any static file server or Cloudflare Pages can serve the repository root.
 
-## Offline architecture
-
-- Plain HTML/CSS/JavaScript
-- Relative local asset paths
-- Professor data bundled locally
-- No required network request at runtime
-- Direct `file://` browser smoke-tested in CI
-
-## Fonts and deployment
-
-The selected font packages include proprietary/commercial materials. V16 therefore keeps the exact font manifest and verification tooling in the repository without automatically publishing raw proprietary font binaries in public Git history.
-
-Two release paths are supported:
-
-1. **Staged Direct Upload — recommended when repository redistribution is not licensed**
-   - keep licensed font archives only on the deployment machine
-   - run `python tools/stage-v16-release.py`
-   - the script creates `.release/v16/`, installs only the eleven exact WOFF2 files, and verifies every file/hash
-   - upload the **contents of `.release/v16/`** to Cloudflare Pages
-
-2. **Git integration**
-   - use only when the applicable font license explicitly permits storing the WOFF2 files in the connected repository
-   - framework preset: **None**
-   - build command: empty
-   - output/root: repository root
-
-See [`CLOUDFLARE_PAGES.md`](CLOUDFLARE_PAGES.md), [`V16_QA.md`](V16_QA.md) and [`V16_FONT_QA.md`](V16_FONT_QA.md) for the exact release procedure.
-
-## Verification
-
-Source-safe verification:
+## Verify before publication
 
 ```bash
+python tools/validate-v17-data.py
 python tools/verify-v16-assets.py --allow-missing-fonts
+python tools/stage-v16-release.py
+python tools/verify-v16-assets.py --root .release/v17 --allow-missing-fonts
 ```
 
-Strict staged-release verification:
+The tooling filenames retain their original V16 names for backward compatibility, but they inspect the files actually referenced by the V17 entrypoint. Browser checks on runners with Chrome and Selenium are:
 
 ```bash
-python tools/stage-v16-release.py
-python tools/verify-v16-assets.py --root .release/v16
+python tools/browser-smoke-v16.py
+python tools/browser-ui-regression.py
 ```
 
-The release gate also exercises the site through a real `file://` URL in headless Chrome, including search, filters, sorting, professor details, saved state, comparison, theme switching, mobile overflow and reduced-motion behavior.
+GitHub Actions executes the data, source, staging-safety and real-browser checks for pull requests and pushes to `main`.
+
+## Font licensing
+
+The default public release bundles the official **Vazirmatn Regular and Bold** WOFF2 files under the **SIL Open Font License 1.1**, includes the complete license at `assets/fonts/OFL.txt`, keeps operating-system Persian-capable fallbacks, and publishes **no proprietary font binaries**. Commercial font archives, extracted proprietary families and `.release/` are gitignored.
+
+If you independently confirm that a purchased font license permits public web serving, you can prepare a separate local release with:
+
+```bash
+python tools/stage-v16-release.py --with-licensed-fonts
+```
+
+This opt-in requires the licensed archives expected by `tools/install-v16-fonts.py`. It does not make publishing those files in a public Git repository lawful. Removing files in a new commit does **not** remove historical public Git blobs or previously deployed/cached copies; history rewriting, repository-visibility changes and provider cache purges require explicit repository-owner decisions and access.
+
+See [CLOUDFLARE_PAGES.md](CLOUDFLARE_PAGES.md) for both Git-integrated and direct-upload publication.
