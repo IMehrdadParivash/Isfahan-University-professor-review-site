@@ -57,7 +57,7 @@ jobs:
               'assets/avatar/avatar-motion.js',
               'assets/css/fonts.css',
               'assets/css/ui-hotfix.css',
-              'assets/js/app.js',
+              'assets/js/app-v17.js',
               'assets/js/ui-hotfix.js',
           ]
           failures = []
