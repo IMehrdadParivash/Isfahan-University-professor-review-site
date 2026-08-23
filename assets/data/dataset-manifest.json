@@ -1,5 +1,5 @@
 {
-  "dataset_version": "2026-08-23-v4-professor-level",
+  "dataset_version": "2026-08-23-v5-feedback-texts",
   "canonical_roster_date": "2026-08-22",
   "canonical_professor_count": 743,
   "statistics": {
@@ -24,6 +24,7 @@
     "public_professor_score": true,
     "public_professor_score_method": "report-count-weighted mean of privacy-safe structured course means",
     "qualitative_summaries_affect_numeric_score": false,
+    "sanitized_feedback_excerpts_affect_numeric_score": false,
     "legacy_bayesian_score_used": false,
     "legacy_prior_issue": "prior 3 was not neutral on normalized 0–5 scale; legacy Bayesian scores excluded",
     "historical_or_unresolved_in_main_professor_list": false
@@ -33,6 +34,8 @@
     "raw_chat_text_in_frontend": false,
     "student_usernames_in_frontend": false,
     "qualitative_summaries_anonymized": true,
+    "sanitized_feedback_excerpts_in_frontend": true,
+    "feedback_excerpts_identity_match_required": "confirmed current-roster id only",
     "singleton_scores_removed_before_publication": true,
     "singleton_exact_dates_removed_before_publication": true
   },
@@ -54,6 +57,7 @@
     "public_runtime_git_blobs": {
       "assets/js/app.js": "6ef96f76ec6ba0c554eb0c4783fa9f7f7419b052",
       "assets/js/community-notes.js": "2c56edf2acbcc9ef2709e20dbd93879aa8dcdeca",
+      "assets/js/feedback-texts.js": "66f2f45adbb58422245bfcd8006e2b19bc735c05",
       "assets/js/loader.js": "30b734b8dcdf8950a4d63d8f01dbef1e5223dc6e"
     }
   }
