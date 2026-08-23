@@ -41,6 +41,13 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def git_blob_sha(path: Path) -> str:
+    """Compute the Git blob object id from file bytes, without requiring a .git directory."""
+    data = path.read_bytes()
+    header = f"blob {len(data)}\0".encode("ascii")
+    return hashlib.sha1(header + data).hexdigest()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="Static website root to verify")
@@ -64,7 +71,8 @@ def verify_public_hashes(root: Path) -> int:
     manifest_path = root / "assets/data/dataset-manifest.json"
     if not manifest_path.is_file():
         return 1
-    hashes = json.loads(manifest_path.read_text(encoding="utf-8")).get("sha256", {})
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    hashes = manifest.get("sha256", {})
     chunk_hashes = hashes.get("public_data_chunks", {})
     if not isinstance(chunk_hashes, dict) or not chunk_hashes:
         print("FAIL    manifest.sha256.public_data_chunks must contain real executable hashes")
@@ -106,15 +114,15 @@ def verify_public_hashes(root: Path) -> int:
             if len(matches) == 1:
                 parts.append(matches[0])
 
-    runtime_hashes = hashes.get("public_runtime_files", {})
+    runtime_blobs = manifest.get("integrity", {}).get("public_runtime_git_blobs", {})
     actual_runtime = set(re.findall(r'<script\b[^>]*\bsrc=["\'](assets/[^"\']+\.js)["\']', html, flags=re.I)) - set(referenced_chunks)
-    if set(runtime_hashes) != actual_runtime:
+    if set(runtime_blobs) != actual_runtime:
         print("FAIL    manifest executable list does not exactly match index.html runtime scripts")
         failures += 1
-    for rel, expected in runtime_hashes.items():
+    for rel, expected in runtime_blobs.items():
         path = root / rel
-        if not path.is_file() or path.is_symlink() or sha256(path) != expected:
-            print(f"FAIL    manifest SHA-256 mismatch: executable {rel}")
+        if not path.is_file() or path.is_symlink() or git_blob_sha(path) != expected:
+            print(f"FAIL    manifest Git blob mismatch: executable {rel}")
             failures += 1
 
     if failures:
