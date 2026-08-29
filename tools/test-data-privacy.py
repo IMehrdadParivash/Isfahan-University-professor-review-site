@@ -28,7 +28,7 @@ class PublicDataPrivacyRegression(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory(prefix="ui-v18-privacy-")
         self.root = Path(self.directory.name)
         shutil.copy2(ROOT / "index.html", self.root / "index.html")
-        for folder in ("assets/js", "assets/data", "assets/avatar"):
+        for folder in ("assets/js", "assets/data"):
             shutil.copytree(ROOT / folder, self.root / folder)
         (self.root / "tools").mkdir()
         for name in ("validate-data.py", "sanitize-data.py"):

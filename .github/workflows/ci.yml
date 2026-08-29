@@ -40,7 +40,6 @@ jobs:
           failures = []
 
           required = [
-              'assets/avatar/loader-avatar.webp',
               'assets/js/loader.js',
               'assets/js/community-notes.js',
               'assets/css/fonts.css',
@@ -54,6 +53,14 @@ jobs:
                   failures.append('index.html does not load anonymized qualitative summaries')
               if not (root / rel).is_file():
                   failures.append(f'missing runtime file: {rel}')
+
+          if (root / 'assets/avatar').exists():
+              failures.append('avatar asset directory returned to the public repository')
+          if 'assets/avatar/' in html or 'story-avatar' in html:
+              failures.append('avatar reference returned to index.html')
+          loader = (root / 'assets/js/loader.js').read_text(encoding='utf-8')
+          if 'assets/avatar/' in loader or 'story-avatar' in loader:
+              failures.append('avatar dependency returned to loader runtime')
 
           for rel in ('assets/fonts/Vazirmatn-Regular.woff2', 'assets/fonts/Vazirmatn-Bold.woff2', 'assets/fonts/OFL.txt', 'robots.txt'):
               if not (root / rel).is_file():
@@ -98,7 +105,7 @@ jobs:
           if failures:
               print('\n'.join('FAIL: ' + issue for issue in failures))
               sys.exit(1)
-          print('V18 static/offline, privacy-summary, security-header and font-license checks passed.')
+          print('Static/offline, avatar-free, privacy-summary, security-header and font-license checks passed.')
 
       - name: Check all release and browser tooling syntax
         run: |
