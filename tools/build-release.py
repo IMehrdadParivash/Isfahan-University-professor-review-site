@@ -84,16 +84,6 @@ def active_runtime_files() -> set[Path]:
         if source.is_file():
             relative.add(candidate)
 
-    # Only image paths explicitly used by the loading-story motion code ship;
-    # leftover persistent-helper avatar poses must not enter the public bundle.
-    motion = ROOT / "assets/js/loader.js"
-    if motion.is_file():
-        for match in re.findall(r"(?:assets/avatar/)([A-Za-z0-9_-]+\.webp)", motion.read_text(encoding="utf-8")):
-            path = Path("assets/avatar") / match
-            if not (ROOT / path).is_file():
-                raise SystemExit(f"Missing active loader avatar asset: {path}")
-            relative.add(path)
-
     # Publicly redistributable Vazirmatn must ship together with its full license.
     for name in ("Vazirmatn-Regular.woff2", "Vazirmatn-Bold.woff2", "OFL.txt"):
         path = Path("assets/fonts") / name

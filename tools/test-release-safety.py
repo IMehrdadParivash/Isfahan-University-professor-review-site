@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial regression checks for V18 static publication and staging."""
+"""Adversarial regression checks for the static publication and staging pipeline."""
 from __future__ import annotations
 
 import hashlib
@@ -46,7 +46,7 @@ def main() -> int:
     remove_fixture_link(source_link)
     remove_fixture_link(output_link)
 
-    with tempfile.TemporaryDirectory(prefix="ui-v18-release-safety-") as temp:
+    with tempfile.TemporaryDirectory(prefix="ui-release-safety-") as temp:
         external = Path(temp) / "external"
         external.mkdir()
         sentinel = external / "must-survive.txt"
@@ -95,10 +95,13 @@ def main() -> int:
         require(dataset_scripts == expected_dataset, f"unexpected public dataset copies: {sorted(dataset_scripts)}")
         require(not any(path.startswith("assets/js/data") for path in staged_files), "inactive archived data chunks entered release")
         require(not any(path.endswith("README.md") for path in staged_files), "documentation unexpectedly entered staged release")
+        require(not any(path.startswith("assets/avatar/") for path in staged_files), "avatar assets entered the public release")
 
-        active_loader_poses = {"pose-walk.webp", "pose-think.webp", "pose-work.webp", "pose-success.webp"}
-        staged_poses = {Path(path).name for path in staged_files if path.startswith("assets/avatar/pose-")}
-        require(staged_poses == active_loader_poses, f"staged avatar files differ from actual loading-story poses: {sorted(staged_poses)}")
+        staged_html = (output / "index.html").read_text(encoding="utf-8")
+        staged_loader = (output / "assets/js/loader.js").read_text(encoding="utf-8")
+        require("assets/avatar/" not in staged_html, "index.html still references avatar assets")
+        require("assets/avatar/" not in staged_loader, "loader runtime still references avatar assets")
+        require("story-avatar" not in staged_html, "avatar element returned to the loading screen")
 
         manifest = json.loads((output / "assets/data/dataset-manifest.json").read_text(encoding="utf-8"))
         chunk_hashes = manifest["sha256"]["public_data_chunks"]
@@ -142,7 +145,7 @@ def main() -> int:
             runtime_target.write_bytes(original_runtime)
             shutil.rmtree(output)
 
-    print("V18 adversarial release safety checks passed: traversal, deletion, symlinks, allowlist, licensing and integrity metadata.")
+    print("Release safety checks passed: traversal, deletion, symlinks, allowlist, licensing, no avatar assets and integrity metadata.")
     return 0
 
 
@@ -150,5 +153,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except Exception as exc:
-        print(f"V18 release safety check failed: {exc}", file=sys.stderr)
+        print(f"Release safety check failed: {exc}", file=sys.stderr)
         raise
