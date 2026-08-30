@@ -60,6 +60,7 @@ async function __loadData() {
   let statusFilter = "all";
   let savedOnly = false;
   let previousFocus = null;
+  const liveStats = new Map();
 
   function storageGet(key, fallback) {
     try { return localStorage.getItem(key) ?? fallback; }
@@ -135,7 +136,7 @@ async function __loadData() {
     return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 5;
   }
 
-  function professorStats(professor) {
+  function legacyProfessorStats(professor) {
     let weightedTotal = 0;
     let sampleSize = 0;
     for (const course of professor.courses) {
@@ -147,8 +148,17 @@ async function __loadData() {
     return { score: sampleSize ? weightedTotal / sampleSize : null, sampleSize };
   }
 
+  function professorStats(professor) {
+    const live = liveStats.get(professor.id);
+    return live ? { score: live.avg_overall, sampleSize: live.review_count, source: "live" } : legacyProfessorStats(professor);
+  }
+
   const professorRating = professor => professorStats(professor).score;
   const reports = professor => professorStats(professor).sampleSize;
+
+  function liveCriterion(professor, criterion) {
+    return liveStats.get(professor.id)?.stats?.criteria?.[criterion]?.average ?? null;
+  }
 
   function professorDimension(professor, dimension) {
     let weightedTotal = 0;
@@ -173,7 +183,8 @@ async function __loadData() {
       professor.name_fa,
       professor.academic_rank,
       professor.faculty,
-      professor.department
+      professor.department,
+      ...professor.courses.map(course => course.course)
     ].join(" "));
   }
 
@@ -188,6 +199,12 @@ async function __loadData() {
     const faculty = $("#faculty").value;
     const department = $("#department").value;
     const academicRank = $("#rank").value;
+    const minRating = Number($("#minRating").value) || 0;
+    const minReviews = Number($("#minReviews").value) || 0;
+    const minTeaching = Number($("#minTeaching").value) || 0;
+    const maxStrictness = Number($("#maxStrictness").value) || 0;
+    const maxExam = Number($("#maxExam").value) || 0;
+    const minRecommend = Number($("#minRecommend").value) || 0;
 
     const result = data.professors.filter(professor => {
       if (query.length) {
@@ -203,6 +220,12 @@ async function __loadData() {
       const rating = professorRating(professor);
       if (statusFilter === "rated" && rating === null) return false;
       if (statusFilter === "none" && rating !== null) return false;
+      if (minRating && (rating === null || rating < minRating)) return false;
+      if (minReviews && reports(professor) < minReviews) return false;
+      if (minTeaching && (liveCriterion(professor, "teaching_quality") ?? -1) < minTeaching) return false;
+      if (maxStrictness && (liveCriterion(professor, "strictness") ?? 99) > maxStrictness) return false;
+      if (maxExam && (liveCriterion(professor, "exam_difficulty") ?? 99) > maxExam) return false;
+      if (minRecommend && (liveStats.get(professor.id)?.recommend_percent ?? -1) < minRecommend) return false;
       return true;
     });
 
@@ -315,11 +338,12 @@ async function __loadData() {
     $("#drawer").dataset.pid = String(id);
     $("#dName").textContent = professor.name_fa;
     $("#dMeta").textContent = [professor.academic_rank, professor.faculty, professor.department].filter(Boolean).join(" • ");
-    $("#drawerBody").innerHTML = `<div class="profile-top"><div class="profile-score"><b>${formatScore(score)}</b><span>${score === null ? "بدون امتیاز" : "امتیاز کلی از ۵"}</span></div><div class="profile-actions"><button class="mini-btn ${saved.has(id) ? "on" : ""}" data-save-id="${id}" aria-pressed="${saved.has(id)}">★ ذخیره</button></div></div><div class="badges"><span class="badge">${fa(count)} بازخورد مؤثر در امتیاز</span><span class="badge">آخرین بازخورد عددی: ${formatDate(latestDate(professor))}</span></div>${url ? `<p><a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">پروفایل رسمی دانشگاه ↗</a></p>` : ""}<h3 class="course-heading">شاخص‌های کلی استاد</h3><div class="dims">${dimensionHTML(professor)}</div><div class="callout profile-callout">امتیاز کلی و شاخص‌ها از تجمیع بازخوردهای قابل‌امتیازدهی برای خود استاد محاسبه می‌شوند. برای تفسیر بهتر، تعداد بازخورد مؤثر را هم کنار امتیاز در نظر بگیرید.</div>`;
+    $("#drawerBody").innerHTML = `<div class="profile-top"><div class="profile-score"><b>${formatScore(score)}</b><span>${score === null ? "بدون امتیاز" : "امتیاز کلی از ۵"}</span></div><div class="profile-actions"><button class="primary-action" data-review-id="${id}" data-review-name="${escapeHTML(professor.name_fa)}">ثبت تجربه</button><button class="mini-btn ${saved.has(id) ? "on" : ""}" data-save-id="${id}" aria-pressed="${saved.has(id)}">★ ذخیره</button></div></div><div class="badges"><span class="badge">${fa(count)} بازخورد مؤثر در امتیاز</span><span class="badge">آخرین بازخورد عددی: ${formatDate(latestDate(professor))}</span></div><p class="profile-links"><a href="professor.php?id=${id}">صفحهٔ مستقل استاد ↗</a>${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">پروفایل رسمی دانشگاه ↗</a>` : ""}<button type="button" data-share-id="${id}" data-share-name="${escapeHTML(professor.name_fa)}">اشتراک‌گذاری</button><button type="button" data-correction-id="${id}">گزارش خطای اطلاعات</button></p><h3 class="course-heading">شاخص‌های کلی استاد</h3><div class="dims">${dimensionHTML(professor)}</div><div class="callout profile-callout">امتیاز کلی و شاخص‌ها از تجمیع بازخوردهای قابل‌امتیازدهی برای خود استاد محاسبه می‌شوند. برای تفسیر بهتر، تعداد بازخورد مؤثر را هم کنار امتیاز در نظر بگیرید.</div><section id="reviewExperience" class="review-experience" data-professor-id="${id}"><div class="review-loading">در حال دریافت تجربه‌های جدید…</div></section>`;
     $("#drawer").classList.add("open");
     $("#drawerBackdrop").classList.add("open");
     $("#drawer").setAttribute("aria-hidden", "false");
     bindActions();
+    document.dispatchEvent(new CustomEvent("ui:professor-open", { detail: { id, name: professor.name_fa } }));
     if (captureFocus) $("#drawerClose").focus();
     if (push) history.replaceState(null, "", `#professor=${professor.id}`);
   }
@@ -358,7 +382,7 @@ async function __loadData() {
     statusFilter = "all";
     savedOnly = false;
     limit = 30;
-    for (const id of ["q", "heroQ", "faculty", "department", "rank"]) $("#" + id).value = "";
+    for (const id of ["q", "heroQ", "faculty", "department", "rank", "minRating", "minReviews", "minTeaching", "maxStrictness", "maxExam", "minRecommend"]) $("#" + id).value = "";
     $("#sort").value = "rating";
     $("#savedCheck").checked = false;
     for (const chip of document.querySelectorAll(".chip")) {
@@ -394,6 +418,9 @@ async function __loadData() {
   $("#department").onchange = () => { limit = 30; render(); };
   $("#rank").onchange = () => { limit = 30; render(); };
   $("#sort").onchange = () => { limit = 30; render(); };
+  for (const id of ["minRating", "minReviews", "minTeaching", "maxStrictness", "maxExam", "minRecommend"]) {
+    $("#" + id).onchange = () => { limit = 30; render(); };
+  }
   $("#loadMore").onclick = () => { limit += 30; render(); };
   $("#clear").onclick = resetFilters;
   $("#savedToggle").onclick = () => { savedOnly = !savedOnly; limit = 30; render(); };
@@ -447,6 +474,16 @@ async function __loadData() {
   renderReliable();
   render();
   applyHash();
+  fetch("api/index.php?route=professor-stats", { credentials: "same-origin" })
+    .then(response => response.ok ? response.json() : Promise.reject())
+    .then(payload => {
+      for (const current of payload.professors || []) liveStats.set(Number(current.professor_id), current);
+      renderReliable();
+      render();
+      const openId = Number($("#drawer").dataset.pid || 0);
+      if (openId) openProfessor(openId, false, false);
+    })
+    .catch(() => { /* Static preview or backend not installed yet. */ });
   document.documentElement.dataset.appReady = "true";
   document.dispatchEvent(new Event("ui:data-ready"));
 })().catch(error => {

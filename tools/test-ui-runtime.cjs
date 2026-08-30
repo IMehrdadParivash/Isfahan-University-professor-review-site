@@ -9,7 +9,7 @@ const notes = fs.readFileSync('assets/js/community-notes.js', 'utf8');
 
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(match => match[1]);
 const dataScripts = Array.from({ length: 6 }, (_, index) => `assets/data/professors-${String(index + 1).padStart(2, '0')}.js`);
-const expectedScripts = [...dataScripts, 'assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/loader.js'];
+const expectedScripts = [...dataScripts, 'assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/reviews.js', 'assets/js/loader.js'];
 assert.deepEqual(scripts, expectedScripts, 'index.html runtime script allowlist drifted');
 
 assert(!html.includes('id="course"'), 'course filter returned to public UI');
@@ -19,12 +19,13 @@ assert(html.includes('امتیاز کلی'), 'professor-level rating copy is mis
 assert(app.includes('function professorStats(professor)'), 'professor-level aggregation is missing');
 assert(app.includes('const professorRating = professor => professorStats(professor).score'), 'professor score accessor is missing');
 assert(app.includes('const reports = professor => professorStats(professor).sampleSize'), 'displayed review count is not tied to score-contributing evidence');
-assert(!app.includes('...professor.courses.map(course => course.course)'), 'course names still influence public professor search');
+assert(app.includes('...professor.courses.map(course => course.course)'), 'course names are missing from professor search');
 assert(!app.includes('data-compare-id'), 'comparison controls still exist in app runtime');
 assert(!app.includes('matchingCourses('), 'public runtime still contains course matching logic');
 
 new vm.Script(app, { filename: 'assets/js/app.js' });
 new vm.Script(notes, { filename: 'assets/js/community-notes.js' });
+new vm.Script(fs.readFileSync('assets/js/reviews.js', 'utf8'), { filename: 'assets/js/reviews.js' });
 assert(notes.includes('qualitative summaries') || notes.includes('خلاصهٔ تجربه‌های دانشجویی'), 'qualitative summary module is missing');
 assert(notes.includes('روی امتیاز عددی استاد اثر نمی‌گذارد'), 'qualitative notes do not state score separation');
 assert(!/\bin reply to\b/i.test(notes), 'raw chat reply markers leaked into qualitative notes');

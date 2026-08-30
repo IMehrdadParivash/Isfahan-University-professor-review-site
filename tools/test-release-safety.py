@@ -82,7 +82,7 @@ def main() -> int:
         required = {
             "index.html", "_headers", "robots.txt", "favicon.svg",
             "assets/data/dataset-manifest.json",
-            "assets/js/app.js", "assets/js/community-notes.js", "assets/js/loader.js",
+            "assets/js/app.js", "assets/js/community-notes.js", "assets/js/reviews.js", "assets/js/loader.js",
             "assets/css/app.css",
             "assets/fonts/Vazirmatn-Regular.woff2", "assets/fonts/Vazirmatn-Bold.woff2", "assets/fonts/OFL.txt",
         }
@@ -111,7 +111,7 @@ def main() -> int:
             require(actual == expected, f"staged chunk hash mismatch: {relative}")
 
         runtime = manifest["integrity"]["public_runtime_git_blobs"]
-        expected_runtime = {"assets/js/app.js", "assets/js/community-notes.js", "assets/js/loader.js"}
+        expected_runtime = {"assets/js/app.js", "assets/js/community-notes.js", "assets/js/reviews.js", "assets/js/loader.js"}
         require(set(runtime) == expected_runtime, "manifest runtime allowlist is stale")
 
         result = subprocess.run(

@@ -1,0 +1,36 @@
+Options -Indexes
+DirectoryIndex index.php index.html
+LimitRequestBody 32768
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^sitemap\.xml$ sitemap.php [L]
+  RewriteRule ^(?:app|bin|database|tools)/ - [F,L,NC]
+  RewriteRule ^config(?:\.example)?\.php$ - [F,L,NC]
+</IfModule>
+
+<FilesMatch "^(?:config(?:\.example)?\.php|\.env|composer\.(?:json|lock))$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "\.(?:sql|sqlite|log|bak)$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  Header always set Cross-Origin-Resource-Policy "same-origin"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+  <FilesMatch "\.(?:woff2|css|js|svg)$">
+    Header set Cache-Control "public, max-age=604800, immutable"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_php.c>
+  php_flag display_errors Off
+  php_flag session.cookie_httponly On
+  php_value session.cookie_samesite Lax
+  php_value session.use_strict_mode 1
+</IfModule>

@@ -52,9 +52,10 @@
   },
   "integrity": {
     "public_runtime_git_blobs": {
-      "assets/js/app.js": "6ef96f76ec6ba0c554eb0c4783fa9f7f7419b052",
+      "assets/js/app.js": "aee0bfd397663cc12eb76e098f1b0eae56160d4e",
       "assets/js/community-notes.js": "bf675283f038e401f952b5a7a416c5b193969c91",
-      "assets/js/loader.js": "2eb5cc1b2b43f5d4b72dde8196ace082236d5ff0"
+      "assets/js/loader.js": "2eb5cc1b2b43f5d4b72dde8196ace082236d5ff0",
+      "assets/js/reviews.js": "5e238abe7e2df14c87a13b46599c71f991d38c76"
     }
   }
 }
