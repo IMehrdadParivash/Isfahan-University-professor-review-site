@@ -140,12 +140,21 @@ jobs:
         run: |
           python tools/build-release.py
           python tools/verify-assets.py --root .release/site
+      - name: Build deployable ParsPack PHP/MySQL archive
+        run: python tools/build-parspack-release.py
       - name: Upload exactly the verified static release
         uses: actions/upload-artifact@v4
         with:
           name: cloudflare-pages-site
           path: .release/site/
           include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload deployable ParsPack archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: parspack-php-mysql-site
+          path: .release/parspack-site.zip
           if-no-files-found: error
           retention-days: 7
 

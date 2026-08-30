@@ -37,6 +37,12 @@ class AssetParser(HTMLParser):
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=RELEASE_ROOT / "site")
+    parser.add_argument(
+        "--summary",
+        choices=("cloudflare", "none"),
+        default="cloudflare",
+        help="Select the deployment summary printed after a successful build.",
+    )
     return parser.parse_args()
 
 
@@ -130,9 +136,10 @@ def main() -> int:
 
     run(sys.executable, str(TOOLS / "verify-assets.py"), "--root", str(output))
 
-    print("\nThe static website release is ready:")
-    print(output)
-    print("Deploy this directory itself to Cloudflare Pages; do not deploy .release/ as a parent folder.")
+    if args.summary == "cloudflare":
+        print("\nThe static website release is ready:")
+        print(output)
+        print("Deploy this directory itself to Cloudflare Pages; do not deploy .release/ as a parent folder.")
     return 0
 
 

@@ -30,7 +30,11 @@ def assert_safe(path: Path) -> None:
 
 def main() -> int:
     assert_safe(OUTPUT)
-    subprocess.run([sys.executable, str(STATIC_BUILDER), "--output", str(OUTPUT)], cwd=ROOT, check=True)
+    subprocess.run(
+        [sys.executable, str(STATIC_BUILDER), "--output", str(OUTPUT), "--summary", "none"],
+        cwd=ROOT,
+        check=True,
+    )
     for name in SERVER_FILES:
         source = ROOT / name
         if not source.is_file():
