@@ -42,6 +42,7 @@ jobs:
           required = [
               'assets/js/loader.js',
               'assets/js/community-notes.js',
+              'assets/js/reviews.js',
               'assets/css/fonts.css',
               'assets/css/app.css',
               'assets/js/app.js',
@@ -84,7 +85,7 @@ jobs:
 
           scripts = re.findall(r'<script\s+src=["\']([^"\']+)["\']', html, flags=re.I)
           expected_scripts = [f'assets/data/professors-{index:02}.js' for index in range(1, 7)]
-          expected_scripts += ['assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/loader.js']
+          expected_scripts += ['assets/js/app.js', 'assets/js/community-notes.js', 'assets/js/reviews.js', 'assets/js/loader.js']
           if scripts != expected_scripts:
               failures.append(f'index.html runtime script allowlist drifted: {scripts}')
           if 'id="course"' in html or 'id="compareModal"' in html or 'precisionFilters' in html:
@@ -112,13 +113,21 @@ jobs:
           python -m compileall -q tools
           node --check assets/js/app.js
           node --check assets/js/community-notes.js
+          node --check assets/js/reviews.js
           node --check assets/js/loader.js
+
+      - name: Check PHP application syntax
+        run: |
+          find app api admin bin -name '*.php' -print0 | xargs -0 -n1 php -l
+          for file in index.php professor.php sitemap.php privacy.php community-guidelines.php config.example.php; do php -l "$file"; done
 
       - name: Verify active data hashes and runtime Git blobs
         run: python tools/verify-assets.py
 
       - name: Exercise professor-level data and runtime invariants in Node
         run: node tools/test-ui-runtime.cjs
+      - name: Exercise backend schema, privacy and moderation contracts
+        run: python tools/test-backend-contract.py
 
   release-safety:
     name: Adversarial safe staging and clean runtime allowlist
@@ -131,12 +140,21 @@ jobs:
         run: |
           python tools/build-release.py
           python tools/verify-assets.py --root .release/site
+      - name: Build deployable ParsPack PHP/MySQL archive
+        run: python tools/build-parspack-release.py
       - name: Upload exactly the verified static release
         uses: actions/upload-artifact@v4
         with:
           name: cloudflare-pages-site
           path: .release/site/
           include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload deployable ParsPack archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: parspack-php-mysql-site
+          path: .release/parspack-site.zip
           if-no-files-found: error
           retention-days: 7
 

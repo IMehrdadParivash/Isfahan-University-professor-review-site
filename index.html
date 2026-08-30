@@ -12,6 +12,7 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="امتیاز استادان | دانشگاه اصفهان">
 <meta name="twitter:description" content="فهرست استادان دانشگاه اصفهان با امتیاز کلی، تعداد بازخورد و فیلتر دانشکده و گروه آموزشی.">
+<meta name="robots" content="index,follow,max-image-preview:large">
 <title>امتیاز استادان | دانشگاه اصفهان</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/css/app.css">
@@ -39,6 +40,7 @@
       <div>امتیاز استادان<small>دانشگاه اصفهان</small></div>
     </div>
     <div class="top-actions">
+      <button id="requestProfessor" class="ghost hide-mobile">+ درخواست استاد</button>
       <button id="savedToggle" class="ghost hide-mobile" aria-pressed="false">★ ذخیره‌شده‌ها</button>
       <button id="themeBtn" class="ghost" title="تغییر پوسته" aria-label="تغییر پوستهٔ روشن و تاریک">◐</button>
     </div>
@@ -113,6 +115,18 @@
             <button id="clear" class="clear">پاک کردن فیلترها</button>
           </div>
         </div>
+        <details class="precision-panel">
+          <summary><span><b>فیلترهای دقیق‌تر</b><small>امتیاز، تعداد نظر و شاخص‌های نظرهای جدید</small></span><i>+</i></summary>
+          <div class="precision-grid">
+            <label class="field field-select"><span class="field-label">حداقل امتیاز کلی</span><select id="minRating" class="control"><option value="">مهم نیست</option><option value="4">۴ و بیشتر</option><option value="3">۳ و بیشتر</option><option value="2">۲ و بیشتر</option></select></label>
+            <label class="field field-select"><span class="field-label">حداقل تعداد نظر</span><select id="minReviews" class="control"><option value="">مهم نیست</option><option value="3">۳ نظر</option><option value="5">۵ نظر</option><option value="10">۱۰ نظر</option></select></label>
+            <label class="field field-select"><span class="field-label">حداقل کیفیت تدریس</span><select id="minTeaching" class="control"><option value="">مهم نیست</option><option value="4">۴ و بیشتر</option><option value="3">۳ و بیشتر</option></select></label>
+            <label class="field field-select"><span class="field-label">حداکثر سخت‌گیری</span><select id="maxStrictness" class="control"><option value="">مهم نیست</option><option value="2">۲ و کمتر</option><option value="3">۳ و کمتر</option><option value="4">۴ و کمتر</option></select></label>
+            <label class="field field-select"><span class="field-label">حداکثر سختی امتحان</span><select id="maxExam" class="control"><option value="">مهم نیست</option><option value="2">۲ و کمتر</option><option value="3">۳ و کمتر</option><option value="4">۴ و کمتر</option></select></label>
+            <label class="field field-select"><span class="field-label">حداقل درصد پیشنهاد</span><select id="minRecommend" class="control"><option value="">مهم نیست</option><option value="80">۸۰٪</option><option value="60">۶۰٪</option><option value="40">۴۰٪</option></select></label>
+          </div>
+          <p class="precision-note">فیلترهای کیفیت تدریس، سخت‌گیری، سختی امتحان و پیشنهاد فقط برای استادانی فعال‌اند که در سامانهٔ جدید نظر ساختاریافته دارند.</p>
+        </details>
       </div>
     </div>
     <div class="results-head"><h2>اساتید</h2><div id="resultCount" class="result-count" role="status" aria-live="polite" aria-atomic="true"></div></div>
@@ -122,7 +136,7 @@
 </section>
 </main>
 
-<footer class="footer"><div class="shell"><b>امتیاز استادان دانشگاه اصفهان</b> — امتیاز کلی هر استاد از تجمیع بازخوردهای قابل‌امتیازدهی و در مقیاس ۰ تا ۵ محاسبه می‌شود.</div></footer>
+<footer class="footer"><div class="shell"><p><b>امتیاز استادان دانشگاه اصفهان</b> — امتیاز کلی هر استاد از تجمیع بازخوردهای قابل‌امتیازدهی و در مقیاس ۰ تا ۵ محاسبه می‌شود.</p><p><a href="community-guidelines.php">قواعد انتشار</a> · <a href="privacy.php">حریم خصوصی</a> · این وب‌سایت وابسته به دانشگاه اصفهان نیست.</p></div></footer>
 
 <div id="drawerBackdrop" class="drawer-backdrop"></div>
 <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="dName" aria-describedby="dMeta" aria-hidden="true" tabindex="-1">
@@ -133,6 +147,41 @@
   <div id="drawerBody" class="drawer-body"></div>
 </aside>
 
+<div id="reviewModal" class="modal-backdrop" aria-hidden="true">
+  <section class="modal review-modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+    <div class="modal-head"><div><h2 id="reviewTitle">ثبت تجربهٔ درس</h2><p id="reviewProfessorName"></p></div><button id="reviewClose" class="close" type="button">بستن</button></div>
+    <form id="reviewForm" novalidate>
+      <input id="reviewProfessorId" name="professor_id" type="hidden">
+      <label class="honeypot" aria-hidden="true">وب‌سایت<input name="website" tabindex="-1" autocomplete="off"></label>
+      <div class="review-form-grid">
+        <label class="form-field full"><span>متن تجربه <b>*</b></span><textarea name="body" minlength="20" maxlength="4000" required placeholder="تجربهٔ مشخص و منصفانه‌ات از کلاس، تدریس، امتحان و نمره‌دهی را بنویس…"></textarea><small>نظر منفی حذف نمی‌شود؛ اطلاعات خصوصی، تهدید و محتوای غیرقانونی مجاز نیست.</small></label>
+        <label class="form-field"><span>نام درس</span><input name="course_name" maxlength="120" autocomplete="off"></label>
+        <label class="form-field"><span>ترم یا سال</span><input name="term_label" maxlength="40" placeholder="مثلاً پاییز ۱۴۰۵"></label>
+        <label class="form-field"><span>نوع درس</span><select name="course_type"><option value="">مشخص نشده</option><option value="general">عمومی</option><option value="basic">پایه</option><option value="core">اصلی</option><option value="specialized">تخصصی</option><option value="elective">اختیاری</option><option value="practical">عملی</option></select></label>
+        <label class="form-field"><span>نحوهٔ نمایش</span><select name="display_mode" id="displayMode"><option value="anonymous">کاملاً ناشناس</option><option value="alias">نام مستعار</option><option value="real_name">نام واقعی</option><option value="account">حساب کاربری</option></select></label>
+        <label id="displayNameField" class="form-field" hidden><span>نام نمایشی</span><input name="display_name" maxlength="60"></label>
+      </div>
+      <div class="rating-grid">
+        <label><span>امتیاز کلی <b>*</b></span><select name="rating_overall" required><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+        <label><span>کیفیت تدریس</span><select name="rating_teaching_quality"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+        <label><span>رفتار با دانشجو</span><select name="rating_behavior"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+        <label><span>عدالت نمره‌دهی</span><select name="rating_grading_fairness"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+      </div>
+      <details class="review-more"><summary>معیارهای تکمیلی</summary><div class="rating-grid">
+        <label><span>میزان سخت‌گیری</span><select name="rating_strictness"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+        <label><span>سختی امتحان</span><select name="rating_exam_difficulty"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+        <label><span>حضور و غیاب</span><select name="rating_attendance"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+        <label><span>حجم تکلیف</span><select name="rating_workload"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+        <label><span>تطابق امتحان با تدریس</span><select name="rating_exam_alignment"><option value="">—</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+      </div></details>
+      <fieldset class="recommend-field"><legend>این استاد را پیشنهاد می‌کنی؟ <b>*</b></legend><label><input type="radio" name="recommended" value="true" required> بله</label><label><input type="radio" name="recommended" value="false" required> خیر</label></fieldset>
+      <label class="policy-check"><input type="checkbox" name="policy" required> قوانین انتشار و حریم خصوصی را خوانده‌ام و اطلاعات شخصی فرد دیگری را منتشر نمی‌کنم.</label>
+      <div id="reviewFeedback" class="form-feedback" role="status" aria-live="polite"></div>
+      <button class="submit-review" type="submit">ارسال تجربه</button>
+    </form>
+  </section>
+</div>
+
 <script src="assets/data/professors-01.js"></script>
 <script src="assets/data/professors-02.js"></script>
 <script src="assets/data/professors-03.js"></script>
@@ -141,6 +190,7 @@
 <script src="assets/data/professors-06.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/community-notes.js"></script>
+<script src="assets/js/reviews.js"></script>
 <script src="assets/js/loader.js"></script>
 </body>
 </html>

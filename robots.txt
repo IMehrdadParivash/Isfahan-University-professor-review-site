@@ -2,3 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /assets/data/
 Disallow: /assets/js/data-
+Disallow: /admin/
+Disallow: /api/
+Sitemap: https://CHANGE_ME.ir/sitemap.xml
